@@ -1,0 +1,2085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Dashboard - Team Analytics</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .logo {
+      display: inline-flex;
+      gap: 3px;
+    }
+    
+    .logo span {
+      width: 4px;
+      height: 20px;
+      display: inline-block;
+    }
+    
+    .logo span:nth-child(1) { background: #4CAF50; height: 12px; }
+    .logo span:nth-child(2) { background: #2196F3; height: 16px; }
+    .logo span:nth-child(3) { background: #FF9800; height: 20px; }
+    
+    .date-selector {
+      margin-top: 15px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .date-selector select, .date-selector input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    
+    .file-upload-section {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .source-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    
+    .toggle-btn {
+      padding: 10px 20px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    
+    .toggle-btn.active {
+      background: #2196F3;
+      color: white;
+      border-color: #2196F3;
+    }
+    
+    .data-source-panel {
+      transition: all 0.3s;
+    }
+    
+    .data-source-panel.hidden {
+      display: none;
+    }
+    
+    .file-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .file-upload-item {
+      padding: 15px;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      text-align: center;
+      background: #f9f9f9;
+      transition: all 0.3s;
+    }
+    
+    .file-upload-item.loaded {
+      border-color: #4CAF50;
+      background: #e8f5e9;
+    }
+    
+    .file-upload-item label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    
+    .file-upload-item input[type="file"] {
+      display: none;
+    }
+    
+    .file-upload-btn {
+      padding: 8px 16px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .file-upload-btn:hover {
+      background: #1976D2;
+    }
+    
+    .file-status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #4CAF50;
+    }
+    
+    .sheets-config {
+      margin-top: 20px;
+    }
+    
+    .sheet-url-input {
+      margin-bottom: 15px;
+    }
+    
+    .sheet-url-input label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    
+    .sheet-url-input input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      background: #f0f2f5;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    
+    .tab.active {
+      background: #2196F3;
+      color: white;
+    }
+    
+    .tab.hidden {
+      display: none;
+    }
+    
+    .content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .team-overview-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .team-overview-table th {
+      background: #f5f5f5;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #ddd;
+    }
+    
+    .team-overview-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .metric-cell {
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .status-excellent {
+      background: #4CAF50;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    
+    .status-progressing {
+      background: #FF9800;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    
+    .status-practice {
+      background: #f44336;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    
+    .individual-dashboard {
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+    }
+    
+    .individual-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .individual-header h2 {
+      color: #ff5722;
+      font-size: 32px;
+      margin-top: 10px;
+    }
+    
+    .period-indicator {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .metric-card {
+      padding: 25px;
+      border-radius: 10px;
+      border: 2px solid #e0e0e0;
+    }
+    
+    .metric-card.enhancement {
+      background: #fffbf0;
+    }
+    
+    .metric-card.membership {
+      background: #f0f9ff;
+    }
+    
+    .metric-card.rebook {
+      background: #f3f0ff;
+    }
+    
+    .metric-card.overall {
+      background: #fff5f0;
+    }
+    
+    .metric-value {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      margin: 10px 0;
+    }
+    
+    .metric-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .metric-target {
+      text-align: center;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    
+    .progress-bar {
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f44336 0%, #ff9800 50%, #4caf50 100%);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+    
+    .progress-text {
+      text-align: center;
+      margin-top: 10px;
+      font-style: italic;
+    }
+    
+    .bonus-indicator {
+      margin-top: 10px;
+      padding: 8px;
+      background: #f0f9ff;
+      border-radius: 5px;
+      text-align: center;
+      font-weight: 600;
+      color: #0066cc;
+    }
+    
+    .bonus-indicator.total-bonus {
+      background: #fff3cd;
+      color: #856404;
+      font-size: 16px;
+    }
+    
+    .bonus-breakdown {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .bonus-breakdown h3 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .bonus-tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .bonus-table {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .bonus-table h4 {
+      color: #495057;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .bonus-table table {
+      width: 100%;
+      font-size: 14px;
+    }
+    
+    .bonus-table td {
+      padding: 5px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .bonus-table td:last-child {
+      text-align: right;
+      font-weight: 600;
+      color: #28a745;
+    }
+    
+    .team-comparison {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    
+    .team-comparison h3 {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .comparison-table th {
+      background: #333;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    .comparison-table td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .comparison-table tr.highlight {
+      background: #e3f2fd;
+      font-weight: bold;
+    }
+    
+    .you-row {
+      background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
+      font-weight: bold;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .process-btn {
+      padding: 12px 30px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    
+    .process-btn:hover {
+      background: #45a049;
+    }
+    
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .summary-stat {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .summary-stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2196F3;
+    }
+    
+    .summary-stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    
+    .login-container {
+      max-width: 800px;
+      margin: 50px auto;
+      text-align: center;
+    }
+    
+    .login-container h2 {
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 32px;
+    }
+    
+    .login-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+    
+    .login-card {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .login-card h3 {
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: #2196F3;
+    }
+    
+    .login-card p {
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+    
+    .login-select, .login-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .login-btn.admin {
+      background: #2196F3;
+    }
+    
+    .login-btn:hover {
+      opacity: 0.9;
+    }
+    
+    .logout-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .logout-btn:hover {
+      background: #c82333;
+    }
+    
+    .access-denied {
+      color: #dc3545;
+      padding: 10px;
+      background: #f8d7da;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    
+    .bonus-summary-section {
+      margin-top: 40px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    
+    .bonus-summary-section h2 {
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .bonus-summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .bonus-summary-table th {
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+      border: 1px solid #ddd;
+    }
+    
+    .bonus-summary-table td {
+      padding: 8px;
+      text-align: center;
+      border: 1px solid #ddd;
+      font-size: 14px;
+    }
+    
+    .bonus-summary-table tbody tr:hover {
+      background: #f5f5f5;
+    }
+    
+    .bonus-structure-admin {
+      margin-top: 20px;
+    }
+    
+    .bonus-rates {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .rate-box {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .rate-box h4 {
+      color: #495057;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .rate-box div {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    
+    .total-payout {
+      font-size: 24px !important;
+      font-weight: bold;
+      color: #0066cc;
+      margin-top: 10px !important;
+    }
+    
+    .payout-high {
+      background-color: #d4edda !important;
+      font-weight: bold;
+    }
+    
+    .payout-medium {
+      background-color: #fff3cd !important;
+    }
+    
+    .payout-low {
+      background-color: #f8d7da !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <span class="logo">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+      Performance Dashboard
+    </h1>
+    <div class="date-selector">
+      <label>Period:</label>
+      <select id="periodSelect">
+        <option value="current">Current Period</option>
+        <option value="previous1">Previous Period</option>
+        <option value="previous2">2 Periods Ago</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <input type="date" id="startDate" class="hidden">
+      <input type="date" id="endDate" class="hidden">
+      <button class="process-btn" style="padding: 8px 15px; margin-left: 10px;" onclick="updatePeriodData()">Update Period</button>
+      <button class="process-btn" style="padding: 8px 15px; margin-left: 10px; background: #ff9800;" onclick="refreshGoogleData()">Refresh Data</button>
+    </div>
+  </div>
+  
+  <div class="file-upload-section" id="dataSourceSection">
+    <h2>Data Source Options</h2>
+    <div class="source-toggle">
+      <button class="toggle-btn active" onclick="toggleDataSource('sheets')">Google Sheets</button>
+      <button class="toggle-btn" onclick="toggleDataSource('upload')">File Upload</button>
+    </div>
+    
+    <div id="sheets-config" class="data-source-panel">
+      <p style="color: #666; margin-bottom: 20px;">Enter your published Google Sheets CSV URLs below. These will be saved for automatic loading.</p>
+      <div class="sheets-config">
+        <div class="sheet-url-input">
+          <label>Memberships Sheet URL:</label>
+          <input type="text" id="membershipUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+        </div>
+        <div class="sheet-url-input">
+          <label>Sales Report URL:</label>
+          <input type="text" id="salesUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+        </div>
+        <div class="sheet-url-input">
+          <label>Guest OOT Data URL:</label>
+          <input type="text" id="guestUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+        </div>
+        <div class="sheet-url-input">
+          <label>Appointments URL:</label>
+          <input type="text" id="appointmentUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+        </div>
+        <div class="sheet-url-input">
+          <label>Payroll Hours URL:</label>
+          <input type="text" id="payrollUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+        </div>
+        <button class="process-btn" onclick="saveAndLoadGoogleSheets()">Save URLs & Load Data</button>
+      </div>
+    </div>
+    
+    <div id="upload-config" class="data-source-panel hidden">
+      <p style="color: #666; margin-bottom: 20px;">Upload your CSV files directly. Data will be stored locally in your browser.</p>
+      <div class="file-upload-grid">
+        <div class="file-upload-item" id="membershipUpload">
+          <label>Memberships Data</label>
+          <input type="file" id="membershipFile" accept=".csv">
+          <button class="file-upload-btn" onclick="document.getElementById('membershipFile').click()">Choose File</button>
+          <div class="file-status"></div>
+        </div>
+        <div class="file-upload-item" id="salesUpload">
+          <label>Sales Report</label>
+          <input type="file" id="salesFile" accept=".csv">
+          <button class="file-upload-btn" onclick="document.getElementById('salesFile').click()">Choose File</button>
+          <div class="file-status"></div>
+        </div>
+        <div class="file-upload-item" id="guestUpload">
+          <label>Guest OOT Data</label>
+          <input type="file" id="guestFile" accept=".csv">
+          <button class="file-upload-btn" onclick="document.getElementById('guestFile').click()">Choose File</button>
+          <div class="file-status"></div>
+        </div>
+        <div class="file-upload-item" id="appointmentUpload">
+          <label>Appointments</label>
+          <input type="file" id="appointmentFile" accept=".csv">
+          <button class="file-upload-btn" onclick="document.getElementById('appointmentFile').click()">Choose File</button>
+          <div class="file-status"></div>
+        </div>
+        <div class="file-upload-item" id="payrollUpload">
+          <label>Payroll Hours</label>
+          <input type="file" id="payrollFile" accept=".csv">
+          <button class="file-upload-btn" onclick="document.getElementById('payrollFile').click()">Choose File</button>
+          <div class="file-status"></div>
+        </div>
+      </div>
+      <button class="process-btn" onclick="processAllData()">Process Uploaded Data</button>
+    </div>
+    
+    <div id="loadingStatus" style="margin-top: 20px; text-align: center; color: #2196F3;"></div>
+  </div>
+  
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('login')">Login</button>
+    <button class="tab hidden" id="adminTab" onclick="showTab('overview')">Team Overview (Admin)</button>
+    <button class="tab hidden" id="individualTab" onclick="showTab('individual')">All Staff (Admin)</button>
+    <button class="tab hidden" id="staffTab" onclick="showTab('staffview')">My Dashboard</button>
+  </div>
+  
+  <div class="content">
+    <div id="login-content">
+      <div class="login-container">
+        <h2>Performance Dashboard Login</h2>
+        <div class="login-options">
+          <div class="login-card">
+            <h3>Staff Login</h3>
+            <p>Experience Guides - Access your personal dashboard</p>
+            <select id="staffLoginSelect" class="login-select">
+              <option value="">Select your name...</option>
+              <option value="Angela McNally">Angela McNally</option>
+              <option value="Madison Jeske">Madison Jeske</option>
+              <option value="Di Fisher">Di Fisher</option>
+              <option value="Nicole Ortiz">Nicole Ortiz</option>
+              <option value="Edward Franklin">Edward Franklin</option>
+              <option value="Mariaelena Parra">Mariaelena Parra</option>
+              <option value="Cheyenne Bringham">Cheyenne Bringham</option>
+            </select>
+            <button class="login-btn" onclick="staffLogin()">Login as Staff</button>
+          </div>
+          
+          <div class="login-card">
+            <h3>Admin Login</h3>
+            <p>Managers - Access all dashboards and reports</p>
+            <input type="password" id="adminPassword" placeholder="Enter admin password" class="login-input">
+            <button class="login-btn admin" onclick="adminLogin()">Login as Admin</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="overview-content" class="hidden">
+      <h2>Team Performance Overview</h2>
+      <div class="summary-stats" id="summaryStats"></div>
+      <table class="team-overview-table" id="teamTable">
+        <thead>
+          <tr>
+            <th>Staff Member</th>
+            <th>Enhance Sold</th>
+            <th>Enhance Goal</th>
+            <th>Achieved %</th>
+            <th>Members Sold</th>
+            <th>Target</th>
+            <th>Achieved %</th>
+            <th>Rebook Goal %</th>
+            <th>Actual %</th>
+            <th>Overall Status</th>
+          </tr>
+        </thead>
+        <tbody id="teamTableBody">
+        </tbody>
+      </table>
+      
+      <div class="bonus-summary-section">
+        <h2>Team Bonus Summary</h2>
+        <table class="bonus-summary-table">
+          <thead>
+            <tr>
+              <th>Experience Guide</th>
+              <th>Shifts</th>
+              <th colspan="4" style="background: #ffc107;">Enhancements</th>
+              <th colspan="4" style="background: #dc3545;">Memberships</th>
+              <th style="background: #0066cc;">Total Payout</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th></th>
+              <th style="background: #fff3cd;">Goal</th>
+              <th style="background: #fff3cd;">Achieved</th>
+              <th style="background: #fff3cd;">% Attained</th>
+              <th style="background: #fff3cd;">Payout</th>
+              <th style="background: #f8d7da;">Goal</th>
+              <th style="background: #f8d7da;">Achieved</th>
+              <th style="background: #f8d7da;">% Attained</th>
+              <th style="background: #f8d7da;">Payout</th>
+              <th style="background: #cce5ff;"></th>
+            </tr>
+          </thead>
+          <tbody id="bonusTableBody">
+          </tbody>
+        </table>
+        
+        <div class="bonus-structure-admin">
+          <div class="bonus-rates">
+            <div class="rate-box">
+              <h4>Enhancement Rates</h4>
+              <div>90-100%: $0.90</div>
+              <div>80-89%: $0.80</div>
+              <div>&lt;80%: $0.70</div>
+            </div>
+            <div class="rate-box">
+              <h4>Membership Rates</h4>
+              <div>1-9: $10.00</div>
+              <div>10-14: $15.00</div>
+              <div>15+: $20.00</div>
+            </div>
+            <div class="rate-box">
+              <h4>Period Total</h4>
+              <div class="total-payout" id="periodTotalPayout">$0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="individual-content" class="hidden">
+      <div class="individual-dashboard">
+        <div class="individual-header">
+          <div class="logo" style="transform: scale(2); margin: 20px auto; width: fit-content;">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h2 id="staffName">Select Staff Member</h2>
+        </div>
+        
+        <div class="period-indicator" id="periodIndicator">
+          Period: Loading...
+        </div>
+        
+        <div class="metrics-grid">
+          <div class="metric-card enhancement">
+            <div class="metric-label">Enhancements</div>
+            <div class="metric-value" id="enhanceValue">0</div>
+            <div class="metric-target">Goal: <span id="enhanceGoal">0</span></div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="enhanceProgress"></div>
+            </div>
+            <div class="progress-text" id="enhanceStatus">In Progress</div>
+          </div>
+          
+          <div class="metric-card membership">
+            <div class="metric-label">Memberships</div>
+            <div class="metric-value" id="memberValue">0</div>
+            <div class="metric-target">Target: <span id="memberGoal">0</span></div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="memberProgress"></div>
+            </div>
+            <div class="progress-text" id="memberStatus">In Progress</div>
+          </div>
+          
+          <div class="metric-card rebook">
+            <div class="metric-label">Rebook Rate</div>
+            <div class="metric-value" id="rebookValue">0%</div>
+            <div class="metric-target">Target: <span id="rebookGoal">0%</span></div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="rebookProgress"></div>
+            </div>
+            <div class="progress-text" id="rebookStatus">In Progress</div>
+          </div>
+          
+          <div class="metric-card overall">
+            <div class="metric-label">Overall Status</div>
+            <div class="metric-value" id="overallValue">0%</div>
+            <div class="metric-target">Performance Score</div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="overallProgress"></div>
+            </div>
+            <div class="progress-text" id="overallStatus">In Progress</div>
+          </div>
+        </div>
+        
+        <div class="team-comparison">
+          <h3>Anonymous Team Comparison</h3>
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Team Member</th>
+                <th>Enhance</th>
+                <th>Members</th>
+                <th>Rebook %</th>
+                <th>Score</th>
+                <th>Rank</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div id="analytics-content" class="hidden">
+      <h2>Analytics Dashboard</h2>
+      <div id="analyticsCharts">
+      </div>
+    </div>
+    
+    <div id="staffview-content" class="hidden">
+      <div id="staff-dashboard">
+        <div class="individual-dashboard">
+          <button class="logout-btn" onclick="logout()">Logout</button>
+          <div class="individual-header">
+            <div class="logo" style="transform: scale(2); margin: 20px auto; width: fit-content;">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <h2 id="staffNamePrivate">Welcome</h2>
+          </div>
+          
+          <div class="period-indicator" id="periodIndicatorPrivate">
+            Period: Loading...
+          </div>
+          
+          <div class="metrics-grid">
+            <div class="metric-card enhancement">
+              <div class="metric-label">Enhancements</div>
+              <div class="metric-value" id="enhanceValuePrivate">0</div>
+              <div class="metric-target">Goal: <span id="enhanceGoalPrivate">0</span></div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="enhanceProgressPrivate"></div>
+              </div>
+              <div class="progress-text" id="enhanceStatusPrivate">In Progress</div>
+              <div class="bonus-indicator" id="enhanceBonusPrivate">Bonus: $0.00</div>
+            </div>
+            
+            <div class="metric-card membership">
+              <div class="metric-label">Memberships</div>
+              <div class="metric-value" id="memberValuePrivate">0</div>
+              <div class="metric-target">Target: <span id="memberGoalPrivate">0</span></div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="memberProgressPrivate"></div>
+              </div>
+              <div class="progress-text" id="memberStatusPrivate">In Progress</div>
+              <div class="bonus-indicator" id="memberBonusPrivate">Bonus: $0.00</div>
+            </div>
+            
+            <div class="metric-card rebook">
+              <div class="metric-label">Rebook Rate</div>
+              <div class="metric-value" id="rebookValuePrivate">0%</div>
+              <div class="metric-target">Target: <span id="rebookGoalPrivate">0%</span></div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="rebookProgressPrivate"></div>
+              </div>
+              <div class="progress-text" id="rebookStatusPrivate">In Progress</div>
+            </div>
+            
+            <div class="metric-card overall">
+              <div class="metric-label">Overall Status</div>
+              <div class="metric-value" id="overallValuePrivate">0%</div>
+              <div class="metric-target">Performance Score</div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="overallProgressPrivate"></div>
+              </div>
+              <div class="progress-text" id="overallStatusPrivate">In Progress</div>
+              <div class="bonus-indicator total-bonus">Total Bonus: <span id="totalBonusPrivate">$0.00</span></div>
+            </div>
+          </div>
+          
+          <div class="bonus-breakdown">
+            <h3>Bonus Structure</h3>
+            <div class="bonus-tables">
+              <div class="bonus-table">
+                <h4>Enhancements</h4>
+                <table>
+                  <tr><td>90-100% of Goal</td><td>$0.90 per enhancement</td></tr>
+                  <tr><td>80-89% of Goal</td><td>$0.80 per enhancement</td></tr>
+                  <tr><td>&lt;80% of Goal</td><td>$0.70 per enhancement</td></tr>
+                </table>
+              </div>
+              <div class="bonus-table">
+                <h4>Memberships</h4>
+                <table>
+                  <tr><td>1-9 Memberships</td><td>$10.00 each</td></tr>
+                  <tr><td>10-14 Memberships</td><td>$15.00 each</td></tr>
+                  <tr><td>15+ Memberships</td><td>$20.00 each</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <div class="team-comparison">
+            <h3>Anonymous Team Comparison</h3>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Team Member</th>
+                  <th>Enhance</th>
+                  <th>Members</th>
+                  <th>Rebook %</th>
+                  <th>Score</th>
+                  <th>Rank</th>
+                </tr>
+              </thead>
+              <tbody id="comparisonTableBodyPrivate">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Data storage
+    let membershipData = [];
+    let salesData = [];
+    let guestData = [];
+    let appointmentData = [];
+    let payrollData = [];
+    let processedMetrics = {};
+    let currentPeriod = 'current';
+    let periodDates = {};
+    let currentUser = null;
+    let userRole = null;
+    
+    // Experience Guides list
+    const experienceGuides = [
+      'Angela McNally',
+      'Madison Jeske', 
+      'Di Fisher',
+      'Nicole Ortiz',
+      'Edward Franklin',
+      'Mariaelena Parra',
+      'Cheyenne Bringham'
+    ];
+    
+    // Check for saved data on page load
+    window.addEventListener('load', function() {
+      loadSavedUrls();
+      checkForSavedData();
+      
+      // Setup period selector
+      document.getElementById('periodSelect').addEventListener('change', function() {
+        const customInputs = document.querySelectorAll('#startDate, #endDate');
+        if (this.value === 'custom') {
+          customInputs.forEach(input => input.classList.remove('hidden'));
+        } else {
+          customInputs.forEach(input => input.classList.add('hidden'));
+        }
+      });
+      
+      // Setup file upload listeners
+      setupFileUploadListeners();
+    });
+    
+    function setupFileUploadListeners() {
+      const membershipFile = document.getElementById('membershipFile');
+      if (membershipFile) {
+        membershipFile.addEventListener('change', function(e) {
+          handleFileUpload(e, 'membership');
+        });
+      }
+      
+      const salesFile = document.getElementById('salesFile');
+      if (salesFile) {
+        salesFile.addEventListener('change', function(e) {
+          handleFileUpload(e, 'sales');
+        });
+      }
+      
+      const guestFile = document.getElementById('guestFile');
+      if (guestFile) {
+        guestFile.addEventListener('change', function(e) {
+          handleFileUpload(e, 'guest');
+        });
+      }
+      
+      const appointmentFile = document.getElementById('appointmentFile');
+      if (appointmentFile) {
+        appointmentFile.addEventListener('change', function(e) {
+          handleFileUpload(e, 'appointment');
+        });
+      }
+      
+      const payrollFile = document.getElementById('payrollFile');
+      if (payrollFile) {
+        payrollFile.addEventListener('change', function(e) {
+          handleFileUpload(e, 'payroll');
+        });
+      }
+    }
+    
+    function toggleDataSource(source) {
+      const toggleBtns = document.querySelectorAll('.toggle-btn');
+      toggleBtns.forEach(btn => btn.classList.remove('active'));
+      
+      if (source === 'sheets') {
+        toggleBtns[0].classList.add('active');
+        document.getElementById('sheets-config').classList.remove('hidden');
+        document.getElementById('upload-config').classList.add('hidden');
+      } else {
+        toggleBtns[1].classList.add('active');
+        document.getElementById('sheets-config').classList.add('hidden');
+        document.getElementById('upload-config').classList.remove('hidden');
+      }
+    }
+    
+    function checkForSavedData() {
+      // Check localStorage for saved data
+      const savedMembership = localStorage.getItem('membershipData');
+      const savedSales = localStorage.getItem('salesData');
+      const savedGuest = localStorage.getItem('guestData');
+      const savedAppointment = localStorage.getItem('appointmentData');
+      const savedPayroll = localStorage.getItem('payrollData');
+      
+      let dataLoaded = false;
+      
+      if (savedMembership) {
+        membershipData = JSON.parse(savedMembership);
+        console.log(`Loaded ${membershipData.length} membership records from storage`);
+        dataLoaded = true;
+      }
+      if (savedSales) {
+        salesData = JSON.parse(savedSales);
+        console.log(`Loaded ${salesData.length} sales records from storage`);
+        dataLoaded = true;
+      }
+      if (savedGuest) {
+        guestData = JSON.parse(savedGuest);
+        console.log(`Loaded ${guestData.length} guest records from storage`);
+        dataLoaded = true;
+      }
+      if (savedAppointment) {
+        appointmentData = JSON.parse(savedAppointment);
+        console.log(`Loaded ${appointmentData.length} appointment records from storage`);
+        dataLoaded = true;
+      }
+      if (savedPayroll) {
+        payrollData = JSON.parse(savedPayroll);
+        console.log(`Loaded ${payrollData.length} payroll records from storage`);
+        dataLoaded = true;
+      }
+      
+      if (dataLoaded) {
+        document.getElementById('loadingStatus').innerHTML = '<span style="color: #4CAF50;">✓ Data loaded from local storage</span>';
+        processAllData();
+        
+        // Hide data config section after a delay
+        setTimeout(() => {
+          document.getElementById('dataSourceSection').style.display = 'none';
+        }, 2000);
+      }
+    }
+    
+    function loadSavedUrls() {
+      // Load saved URLs from localStorage
+      const savedUrls = localStorage.getItem('googleSheetsUrls');
+      if (savedUrls) {
+        const urls = JSON.parse(savedUrls);
+        document.getElementById('membershipUrl').value = urls.membership || '';
+        document.getElementById('salesUrl').value = urls.sales || '';
+        document.getElementById('guestUrl').value = urls.guest || '';
+        document.getElementById('appointmentUrl').value = urls.appointment || '';
+        document.getElementById('payrollUrl').value = urls.payroll || '';
+      }
+    }
+    
+    function saveAndLoadGoogleSheets() {
+      // Save URLs to localStorage
+      const urls = {
+        membership: document.getElementById('membershipUrl').value,
+        sales: document.getElementById('salesUrl').value,
+        guest: document.getElementById('guestUrl').value,
+        appointment: document.getElementById('appointmentUrl').value,
+        payroll: document.getElementById('payrollUrl').value
+      };
+      
+      localStorage.setItem('googleSheetsUrls', JSON.stringify(urls));
+      loadAllGoogleSheets();
+    }
+    
+    async function loadAllGoogleSheets() {
+      const loadingStatus = document.getElementById('loadingStatus');
+      loadingStatus.innerHTML = 'Loading data from Google Sheets...';
+      
+      try {
+        const membershipUrl = document.getElementById('membershipUrl').value;
+        const salesUrl = document.getElementById('salesUrl').value;
+        const guestUrl = document.getElementById('guestUrl').value;
+        const appointmentUrl = document.getElementById('appointmentUrl').value;
+        const payrollUrl = document.getElementById('payrollUrl').value;
+        
+        const fetchPromises = [];
+        
+        if (membershipUrl) {
+          fetchPromises.push(
+            fetchGoogleSheet(membershipUrl, 'membership')
+              .catch(err => console.error('Error loading membership data:', err))
+          );
+        }
+        
+        if (salesUrl) {
+          fetchPromises.push(
+            fetchGoogleSheet(salesUrl, 'sales')
+              .catch(err => console.error('Error loading sales data:', err))
+          );
+        }
+        
+        if (guestUrl) {
+          fetchPromises.push(
+            fetchGoogleSheet(guestUrl, 'guest')
+              .catch(err => console.error('Error loading guest data:', err))
+          );
+        }
+        
+        if (appointmentUrl) {
+          fetchPromises.push(
+            fetchGoogleSheet(appointmentUrl, 'appointment')
+              .catch(err => console.error('Error loading appointment data:', err))
+          );
+        }
+        
+        if (payrollUrl) {
+          fetchPromises.push(
+            fetchGoogleSheet(payrollUrl, 'payroll')
+              .catch(err => console.error('Error loading payroll data:', err))
+          );
+        }
+        
+        await Promise.all(fetchPromises);
+        
+        loadingStatus.innerHTML = '<span style="color: #4CAF50;">✓ All data loaded successfully!</span>';
+        
+        setTimeout(() => {
+          document.getElementById('dataSourceSection').style.display = 'none';
+        }, 2000);
+        
+        processAllData();
+        
+      } catch (error) {
+        loadingStatus.innerHTML = `<span style="color: #dc3545;">Error loading data: ${error.message}</span>`;
+        console.error('Error loading Google Sheets:', error);
+      }
+    }
+    
+    async function fetchGoogleSheet(url, type) {
+      try {
+        // Try different CORS proxies
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        
+        const response = await fetch(proxyUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const csvText = await response.text();
+        const data = parseCSV(csvText);
+        
+        // Store and save the data
+        switch(type) {
+          case 'membership':
+            membershipData = data;
+            localStorage.setItem('membershipData', JSON.stringify(data));
+            console.log(`Loaded ${data.length} membership records`);
+            break;
+          case 'sales':
+            salesData = data;
+            localStorage.setItem('salesData', JSON.stringify(data));
+            console.log(`Loaded ${data.length} sales records`);
+            break;
+          case 'guest':
+            guestData = data;
+            localStorage.setItem('guestData', JSON.stringify(data));
+            console.log(`Loaded ${data.length} guest records`);
+            break;
+          case 'appointment':
+            appointmentData = data;
+            localStorage.setItem('appointmentData', JSON.stringify(data));
+            console.log(`Loaded ${data.length} appointment records`);
+            break;
+          case 'payroll':
+            payrollData = data;
+            localStorage.setItem('payrollData', JSON.stringify(data));
+            console.log(`Loaded ${data.length} payroll records`);
+            break;
+        }
+        
+        return data;
+      } catch (error) {
+        console.error(`Error fetching ${type} data:`, error);
+        
+        const loadingStatus = document.getElementById('loadingStatus');
+        if (loadingStatus) {
+          loadingStatus.innerHTML += `<br><span style="color: #dc3545;">⚠️ Error loading ${type} data. Try using File Upload instead.</span>`;
+        }
+        
+        throw error;
+      }
+    }
+    
+    function refreshGoogleData() {
+      const loadingStatus = document.getElementById('loadingStatus');
+      loadingStatus.innerHTML = 'Refreshing data from Google Sheets...';
+      loadAllGoogleSheets();
+    }
+    
+    function handleFileUpload(event, type) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const csv = e.target.result;
+          const data = parseCSV(csv);
+          
+          switch(type) {
+            case 'membership':
+              membershipData = data;
+              localStorage.setItem('membershipData', JSON.stringify(data));
+              document.querySelector('#membershipUpload').classList.add('loaded');
+              document.querySelector('#membershipUpload .file-status').textContent = `✓ ${data.length} records`;
+              break;
+            case 'sales':
+              salesData = data;
+              localStorage.setItem('salesData', JSON.stringify(data));
+              document.querySelector('#salesUpload').classList.add('loaded');
+              document.querySelector('#salesUpload .file-status').textContent = `✓ ${data.length} records`;
+              break;
+            case 'guest':
+              guestData = data;
+              localStorage.setItem('guestData', JSON.stringify(data));
+              document.querySelector('#guestUpload').classList.add('loaded');
+              document.querySelector('#guestUpload .file-status').textContent = `✓ ${data.length} records`;
+              break;
+            case 'appointment':
+              appointmentData = data;
+              localStorage.setItem('appointmentData', JSON.stringify(data));
+              document.querySelector('#appointmentUpload').classList.add('loaded');
+              document.querySelector('#appointmentUpload .file-status').textContent = `✓ ${data.length} records`;
+              break;
+            case 'payroll':
+              payrollData = data;
+              localStorage.setItem('payrollData', JSON.stringify(data));
+              document.querySelector('#payrollUpload').classList.add('loaded');
+              document.querySelector('#payrollUpload .file-status').textContent = `✓ ${data.length} records`;
+              break;
+          }
+          
+          // Check if all files are loaded
+          if (membershipData.length > 0 && salesData.length > 0 && 
+              guestData.length > 0 && appointmentData.length > 0 && payrollData.length > 0) {
+            document.getElementById('loadingStatus').innerHTML = '<span style="color: #4CAF50;">✓ All files loaded successfully!</span>';
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+    
+    function parseCSV(csv) {
+      const lines = csv.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const data = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+          const obj = {};
+          headers.forEach((header, index) => {
+            obj[header] = values[index] || '';
+          });
+          data.push(obj);
+        }
+      }
+      return data;
+    }
+    
+    function getPeriodDates(periodType) {
+      const today = new Date();
+      const day = today.getDate();
+      let periodStart, periodEnd;
+      
+      // Determine current period first
+      let baseStart, baseEnd;
+      if (day <= 15) {
+        baseStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        baseEnd = new Date(today.getFullYear(), today.getMonth(), 15);
+      } else {
+        baseStart = new Date(today.getFullYear(), today.getMonth(), 16);
+        baseEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      }
+      
+      // Adjust based on period type
+      switch(periodType) {
+        case 'current':
+          periodStart = baseStart;
+          periodEnd = baseEnd;
+          break;
+        case 'previous1':
+          if (baseStart.getDate() === 1) {
+            periodStart = new Date(baseStart.getFullYear(), baseStart.getMonth() - 1, 16);
+            periodEnd = new Date(baseStart.getFullYear(), baseStart.getMonth(), 0);
+          } else {
+            periodStart = new Date(baseStart.getFullYear(), baseStart.getMonth(), 1);
+            periodEnd = new Date(baseStart.getFullYear(), baseStart.getMonth(), 15);
+          }
+          break;
+        case 'previous2':
+          if (baseStart.getDate() === 1) {
+            periodStart = new Date(baseStart.getFullYear(), baseStart.getMonth() - 1, 1);
+            periodEnd = new Date(baseStart.getFullYear(), baseStart.getMonth() - 1, 15);
+          } else {
+            periodStart = new Date(baseStart.getFullYear(), baseStart.getMonth() - 1, 16);
+            periodEnd = new Date(baseStart.getFullYear(), baseStart.getMonth(), 0);
+          }
+          break;
+      }
+      
+      return { start: periodStart, end: periodEnd };
+    }
+    
+    function updatePeriodData() {
+      const selectedPeriod = document.getElementById('periodSelect').value;
+      currentPeriod = selectedPeriod;
+      
+      if (selectedPeriod === 'custom') {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate && endDate) {
+          periodDates = {
+            start: new Date(startDate),
+            end: new Date(endDate)
+          };
+          processAllData();
+        }
+      } else {
+        periodDates = getPeriodDates(selectedPeriod);
+        processAllData();
+      }
+    }
+    
+    function processAllData() {
+      // Calculate metrics for each Experience Guide
+      processedMetrics = {};
+      
+      // Get period dates if not set
+      if (!periodDates.start) {
+        periodDates = getPeriodDates(currentPeriod);
+      }
+      
+      const periodStart = periodDates.start;
+      const periodEnd = periodDates.end;
+      
+      experienceGuides.forEach(guide => {
+        const metrics = {
+          name: guide,
+          enhancements: 0,
+          enhancementGoal: 0,
+          memberships: 0,
+          membershipGoal: 5,
+          rebookRate: 0,
+          rebookGoal: 35,
+          firstTimeGuests: 0,
+          returningGuests: 0,
+          totalServices: 0,
+          ootGuests: 0,
+          localGuests: 0,
+          hoursWorked: 0
+        };
+        
+        // Process memberships (filter by date)
+        if (membershipData.length > 0) {
+          const memberSales = membershipData.filter(m => {
+            const saleDate = new Date(m['Sale Date']);
+            return (m['Sold By'] === guide || m['Sold By'].includes(guide.split(' ')[1])) &&
+                   saleDate >= periodStart && saleDate <= periodEnd;
+          });
+          metrics.memberships = memberSales.length;
+        }
+        
+        // Process sales (enhancements) - filter by date
+        if (salesData.length > 0) {
+          const enhancements = salesData.filter(s => {
+            const saleDate = new Date(s['Sale Date'] || s['Booked Date']);
+            return (s['Category'] === 'Enhancement' || s['Category'] === 'Enhancements') &&
+                   (s['Serviced By'] === guide || s['ClosedBy'] === guide) &&
+                   saleDate >= periodStart && saleDate <= periodEnd;
+          });
+          metrics.enhancements = enhancements.length;
+        }
+        
+        // Process guest data (OOT vs Local) - filter by date
+        if (guestData.length > 0) {
+          const guestServices = guestData.filter(g => {
+            const saleDate = new Date(g['Sale Date']);
+            return (g['Employee'] === guide || g['Closed By'] === guide) &&
+                   saleDate >= periodStart && saleDate <= periodEnd;
+          });
+          metrics.totalServices = guestServices.length;
+          metrics.ootGuests = guestServices.filter(g => g['Type (Local/OOT)'] === 'OOT').length;
+          metrics.localGuests = guestServices.filter(g => g['Type (Local/OOT)'] === 'Local').length;
+        }
+        
+        // Process appointments (rebook rate) - filter by date
+        if (appointmentData.length > 0) {
+          const appointments = appointmentData.filter(a => {
+            const apptDate = new Date(a['Appointment Date']);
+            return a['Therapist'] === guide &&
+                   apptDate >= periodStart && apptDate <= periodEnd;
+          });
+          const rebooked = appointments.filter(a => a['Rebooked'] === 'Yes' || a['Rebooked'] === 'TRUE').length;
+          const firstTime = appointments.filter(a => a['Request Type'] === 'First Time').length;
+          
+          metrics.firstTimeGuests = firstTime;
+          metrics.returningGuests = rebooked;
+          
+          if (firstTime > 0) {
+            metrics.rebookRate = Math.round((rebooked / firstTime) * 100);
+          }
+        }
+        
+        // Process payroll (hours worked) - filter by date
+        if (payrollData.length > 0) {
+          const payrollRecords = payrollData.filter(p => {
+            const periodStartDate = new Date(p['Period Start']);
+            const periodEndDate = new Date(p['Period End']);
+            return `${p['First Name']} ${p['Last Name']}` === guide &&
+                   periodStartDate >= periodStart && periodEndDate <= periodEnd;
+          });
+          const totalHours = payrollRecords.reduce((sum, record) => 
+            sum + (parseFloat(record['Hourly Hrs']) || 0) + (parseFloat(record['Salaried Hrs']) || 0), 0
+          );
+          metrics.hoursWorked = totalHours;
+        }
+        
+        // Calculate goals based on cross-referenced data
+        // Enhancement goal based on services, hours, and realistic conversion rates
+        if (metrics.hoursWorked > 0) {
+          const servicesPerHour = metrics.totalServices / metrics.hoursWorked;
+          const enhancementConversionRate = 0.18; // 18% realistic conversion
+          
+          let enhancementGoal = Math.round(metrics.totalServices * enhancementConversionRate);
+          
+          const standardPartTimeHours = 35;
+          if (metrics.hoursWorked < standardPartTimeHours) {
+            const hoursMultiplier = metrics.hoursWorked / standardPartTimeHours;
+            enhancementGoal = Math.round(enhancementGoal * hoursMultiplier);
+          }
+          
+          if (metrics.hoursWorked < 20) {
+            metrics.enhancementGoal = Math.max(8, Math.min(15, enhancementGoal));
+          } else if (metrics.hoursWorked < 30) {
+            metrics.enhancementGoal = Math.max(15, Math.min(30, enhancementGoal));
+          } else {
+            metrics.enhancementGoal = Math.max(25, Math.min(50, enhancementGoal));
+          }
+        } else if (metrics.totalServices > 0) {
+          metrics.enhancementGoal = Math.round(metrics.totalServices * 0.18);
+          metrics.enhancementGoal = Math.max(15, metrics.enhancementGoal);
+        } else {
+          metrics.enhancementGoal = 25;
+        }
+        
+        // Membership goal based on OOT guests AND hours worked
+        if (metrics.ootGuests > 0 && metrics.hoursWorked > 0) {
+          const baseGoal = metrics.ootGuests * 0.05; // 5% conversion target
+          const standardPartTimeHours = 35;
+          const hoursAdjustment = metrics.hoursWorked / standardPartTimeHours;
+          metrics.membershipGoal = Math.round(baseGoal * hoursAdjustment);
+          
+          if (metrics.hoursWorked < 20) {
+            metrics.membershipGoal = Math.max(1, metrics.membershipGoal);
+          } else if (metrics.hoursWorked < 30) {
+            metrics.membershipGoal = Math.max(2, metrics.membershipGoal);
+          } else {
+            metrics.membershipGoal = Math.max(3, metrics.membershipGoal);
+          }
+        } else if (metrics.ootGuests > 0) {
+          metrics.membershipGoal = Math.max(2, Math.round(metrics.ootGuests * 0.05));
+        } else {
+          if (metrics.hoursWorked >= 30) {
+            metrics.membershipGoal = 3;
+          } else if (metrics.hoursWorked >= 20) {
+            metrics.membershipGoal = 2;
+          } else {
+            metrics.membershipGoal = 1;
+          }
+        }
+        
+        processedMetrics[guide] = metrics;
+      });
+      
+      updateTeamOverview();
+      updateSummaryStats();
+      updatePeriodDisplay();
+      
+      // Update dashboards if user is logged in
+      if (currentUser && userRole) {
+        if (userRole === 'staff') {
+          updateStaffDashboard(currentUser);
+        } else if (userRole === 'admin') {
+          updateIndividualDashboard(currentUser);
+        }
+      }
+    }
+    
+    // Login Functions
+    function staffLogin() {
+      const selectedStaff = document.getElementById('staffLoginSelect').value;
+      if (!selectedStaff) {
+        alert('Please select your name from the dropdown');
+        return;
+      }
+      
+      currentUser = selectedStaff;
+      userRole = 'staff';
+      
+      // Show staff tabs and hide login
+      document.getElementById('staffTab').classList.remove('hidden');
+      showTab('staffview');
+      updateStaffDashboard(selectedStaff);
+    }
+    
+    function adminLogin() {
+      const password = document.getElementById('adminPassword').value;
+      if (password !== 'admin123') { // Change this password as needed
+        document.getElementById('adminPassword').insertAdjacentHTML('afterend', '<div class="access-denied">Invalid password. Please try again.</div>');
+        return;
+      }
+      
+      currentUser = 'Admin';
+      userRole = 'admin';
+      
+      // Show admin tabs and hide login
+      document.getElementById('adminTab').classList.remove('hidden');
+      document.getElementById('individualTab').classList.remove('hidden');
+      showTab('overview');
+      updateTeamOverview();
+    }
+    
+    function logout() {
+      currentUser = null;
+      userRole = null;
+      
+      // Hide all tabs except login
+      document.getElementById('staffTab').classList.add('hidden');
+      document.getElementById('adminTab').classList.add('hidden');
+      document.getElementById('individualTab').classList.add('hidden');
+      
+      // Clear password field
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('staffLoginSelect').selectedIndex = 0;
+      
+      // Remove access denied messages
+      const accessDenied = document.querySelector('.access-denied');
+      if (accessDenied) {
+        accessDenied.remove();
+      }
+      
+      showTab('login');
+    }
+    
+    // Tab Navigation
+    function showTab(tabName) {
+      // Hide all content sections
+      const contents = ['login-content', 'overview-content', 'individual-content', 'analytics-content', 'staffview-content'];
+      contents.forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // Show selected content and activate tab
+      switch(tabName) {
+        case 'login':
+          document.getElementById('login-content').classList.remove('hidden');
+          document.querySelector('.tab').classList.add('active');
+          break;
+        case 'overview':
+          document.getElementById('overview-content').classList.remove('hidden');
+          document.getElementById('adminTab').classList.add('active');
+          updateTeamOverview();
+          break;
+        case 'individual':
+          document.getElementById('individual-content').classList.remove('hidden');
+          document.getElementById('individualTab').classList.add('active');
+          updateIndividualDashboard(experienceGuides[0]); // Default to first guide
+          break;
+        case 'staffview':
+          document.getElementById('staffview-content').classList.remove('hidden');
+          document.getElementById('staffTab').classList.add('active');
+          break;
+      }
+    }
+    
+    // Dashboard Update Functions
+    function updateSummaryStats() {
+      const summaryStatsDiv = document.getElementById('summaryStats');
+      if (!summaryStatsDiv) return;
+      
+      let totalEnhancements = 0;
+      let totalMemberships = 0;
+      let totalGuests = 0;
+      let totalHours = 0;
+      let activeGuides = 0;
+      
+      Object.values(processedMetrics).forEach(metrics => {
+        if (metrics.hoursWorked > 0 || metrics.totalServices > 0) {
+          activeGuides++;
+          totalEnhancements += metrics.enhancements;
+          totalMemberships += metrics.memberships;
+          totalGuests += metrics.totalServices;
+          totalHours += metrics.hoursWorked;
+        }
+      });
+      
+      const avgEnhanceRate = totalGuests > 0 ? ((totalEnhancements / totalGuests) * 100).toFixed(1) : 0;
+      
+      summaryStatsDiv.innerHTML = `
+        <div class="summary-stat">
+          <div class="summary-stat-value">${activeGuides}</div>
+          <div class="summary-stat-label">Active Guides</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${totalEnhancements}</div>
+          <div class="summary-stat-label">Total Enhancements</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${totalMemberships}</div>
+          <div class="summary-stat-label">Total Memberships</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${avgEnhanceRate}%</div>
+          <div class="summary-stat-label">Avg Enhancement Rate</div>
+        </div>
+        <div class="summary-stat">
+          <div class="summary-stat-value">${Math.round(totalHours)}</div>
+          <div class="summary-stat-label">Total Hours Worked</div>
+        </div>
+      `;
+    }
+    
+    function updateTeamOverview() {
+      const tableBody = document.getElementById('teamTableBody');
+      const bonusTableBody = document.getElementById('bonusTableBody');
+      
+      if (!tableBody || !bonusTableBody) return;
+      
+      let teamOverviewHtml = '';
+      let bonusHtml = '';
+      let totalPayout = 0;
+      
+      Object.values(processedMetrics).forEach(metrics => {
+        const enhancePercent = metrics.enhancementGoal > 0 ? Math.round((metrics.enhancements / metrics.enhancementGoal) * 100) : 0;
+        const memberPercent = metrics.membershipGoal > 0 ? Math.round((metrics.memberships / metrics.membershipGoal) * 100) : 0;
+        
+        let overallStatus = 'status-practice';
+        if (enhancePercent >= 80 && memberPercent >= 80 && metrics.rebookRate >= 30) {
+          overallStatus = 'status-excellent';
+        } else if (enhancePercent >= 60 && memberPercent >= 60 && metrics.rebookRate >= 25) {
+          overallStatus = 'status-progressing';
+        }
+        
+        teamOverviewHtml += `
+          <tr>
+            <td><strong>${metrics.name}</strong></td>
+            <td class="metric-cell">${metrics.enhancements}</td>
+            <td class="metric-cell">${metrics.enhancementGoal}</td>
+            <td class="metric-cell">${enhancePercent}%</td>
+            <td class="metric-cell">${metrics.memberships}</td>
+            <td class="metric-cell">${metrics.membershipGoal}</td>
+            <td class="metric-cell">${memberPercent}%</td>
+            <td class="metric-cell">${metrics.rebookGoal}%</td>
+            <td class="metric-cell">${metrics.rebookRate}%</td>
+            <td class="metric-cell"><span class="${overallStatus}">
+              ${overallStatus.includes('excellent') ? 'Excellent' : 
+                overallStatus.includes('progressing') ? 'Progressing' : 'Practice'}
+            </span></td>
+          </tr>
+        `;
+        
+        // Calculate bonuses
+        const enhanceBonus = calculateEnhancementBonus(metrics.enhancements, enhancePercent);
+        const memberBonus = calculateMembershipBonus(metrics.memberships);
+        const totalBonus = enhanceBonus + memberBonus;
+        totalPayout += totalBonus;
+        
+        let payoutClass = '';
+        if (totalBonus >= 100) payoutClass = 'payout-high';
+        else if (totalBonus >= 50) payoutClass = 'payout-medium';
+        else payoutClass = 'payout-low';
+        
+        bonusHtml += `
+          <tr class="${payoutClass}">
+            <td><strong>${metrics.name}</strong></td>
+            <td>${Math.round(metrics.hoursWorked)}</td>
+            <td>${metrics.enhancementGoal}</td>
+            <td>${metrics.enhancements}</td>
+            <td>${enhancePercent}%</td>
+            <td>$${enhanceBonus.toFixed(2)}</td>
+            <td>${metrics.membershipGoal}</td>
+            <td>${metrics.memberships}</td>
+            <td>${memberPercent}%</td>
+            <td>$${memberBonus.toFixed(2)}</td>
+            <td><strong>$${totalBonus.toFixed(2)}</strong></td>
+          </tr>
+        `;
+      });
+      
+      tableBody.innerHTML = teamOverviewHtml;
+      bonusTableBody.innerHTML = bonusHtml;
+      
+      const periodTotalPayout = document.getElementById('periodTotalPayout');
+      if (periodTotalPayout) {
+        periodTotalPayout.textContent = `$${totalPayout.toFixed(2)}`;
+      }
+    }
+    
+    function updateIndividualDashboard(staffName) {
+      const metrics = processedMetrics[staffName];
+      if (!metrics) return;
+      
+      // Update staff name
+      document.getElementById('staffName').textContent = staffName;
+      
+      // Update metrics
+      updateMetricDisplay('enhance', metrics.enhancements, metrics.enhancementGoal);
+      updateMetricDisplay('member', metrics.memberships, metrics.membershipGoal);
+      updateMetricDisplay('rebook', metrics.rebookRate, metrics.rebookGoal, '%');
+      
+      // Calculate overall score
+      const enhancePercent = metrics.enhancementGoal > 0 ? (metrics.enhancements / metrics.enhancementGoal) * 100 : 0;
+      const memberPercent = metrics.membershipGoal > 0 ? (metrics.memberships / metrics.membershipGoal) * 100 : 0;
+      const rebookPercent = metrics.rebookGoal > 0 ? (metrics.rebookRate / metrics.rebookGoal) * 100 : 0;
+      
+      const overallScore = Math.round((enhancePercent + memberPercent + rebookPercent) / 3);
+      updateMetricDisplay('overall', overallScore, 100, '%');
+      
+      // Update team comparison
+      updateTeamComparison('comparisonTableBody', staffName);
+    }
+    
+    function updateStaffDashboard(staffName) {
+      const metrics = processedMetrics[staffName];
+      if (!metrics) return;
+      
+      // Update staff name
+      document.getElementById('staffNamePrivate').textContent = `Welcome, ${staffName.split(' ')[0]}!`;
+      
+      // Update metrics with bonuses
+      updateMetricDisplayPrivate('enhance', metrics.enhancements, metrics.enhancementGoal);
+      updateMetricDisplayPrivate('member', metrics.memberships, metrics.membershipGoal);
+      updateMetricDisplayPrivate('rebook', metrics.rebookRate, metrics.rebookGoal, '%');
+      
+      // Calculate overall score
+      const enhancePercent = metrics.enhancementGoal > 0 ? (metrics.enhancements / metrics.enhancementGoal) * 100 : 0;
+      const memberPercent = metrics.membershipGoal > 0 ? (metrics.memberships / metrics.membershipGoal) * 100 : 0;
+      const rebookPercent = metrics.rebookGoal > 0 ? (metrics.rebookRate / metrics.rebookGoal) * 100 : 0;
+      
+      const overallScore = Math.round((enhancePercent + memberPercent + rebookPercent) / 3);
+      updateMetricDisplayPrivate('overall', overallScore, 100, '%');
+      
+      // Calculate and display bonuses
+      const enhanceBonus = calculateEnhancementBonus(metrics.enhancements, enhancePercent);
+      const memberBonus = calculateMembershipBonus(metrics.memberships);
+      const totalBonus = enhanceBonus + memberBonus;
+      
+      document.getElementById('enhanceBonusPrivate').textContent = `Bonus: $${enhanceBonus.toFixed(2)}`;
+      document.getElementById('memberBonusPrivate').textContent = `Bonus: $${memberBonus.toFixed(2)}`;
+      document.getElementById('totalBonusPrivate').textContent = `$${totalBonus.toFixed(2)}`;
+      
+      // Update team comparison
+      updateTeamComparison('comparisonTableBodyPrivate', staffName);
+    }
+    
+    function updateMetricDisplay(prefix, value, goal, suffix = '') {
+      document.getElementById(`${prefix}Value`).textContent = value + suffix;
+      document.getElementById(`${prefix}Goal`).textContent = goal + suffix;
+      
+      const percent = goal > 0 ? Math.min((value / goal) * 100, 100) : 0;
+      document.getElementById(`${prefix}Progress`).style.width = percent + '%';
+      
+      let status = 'Needs Improvement';
+      if (percent >= 100) status = 'Goal Achieved!';
+      else if (percent >= 80) status = 'Almost There!';
+      else if (percent >= 60) status = 'Good Progress';
+      
+      document.getElementById(`${prefix}Status`).textContent = status;
+    }
+    
+    function updateMetricDisplayPrivate(prefix, value, goal, suffix = '') {
+      document.getElementById(`${prefix}ValuePrivate`).textContent = value + suffix;
+      document.getElementById(`${prefix}GoalPrivate`).textContent = goal + suffix;
+      
+      const percent = goal > 0 ? Math.min((value / goal) * 100, 100) : 0;
+      document.getElementById(`${prefix}ProgressPrivate`).style.width = percent + '%';
+      
+      let status = 'Needs Improvement';
+      if (percent >= 100) status = 'Goal Achieved!';
+      else if (percent >= 80) status = 'Almost There!';
+      else if (percent >= 60) status = 'Good Progress';
+      
+      document.getElementById(`${prefix}StatusPrivate`).textContent = status;
+    }
+    
+    function updateTeamComparison(tableBodyId, currentStaffName) {
+      const tableBody = document.getElementById(tableBodyId);
+      if (!tableBody) return;
+      
+      // Create comparison data
+      const comparisonData = Object.values(processedMetrics).map(metrics => {
+        const enhancePercent = metrics.enhancementGoal > 0 ? (metrics.enhancements / metrics.enhancementGoal) * 100 : 0;
+        const memberPercent = metrics.membershipGoal > 0 ? (metrics.memberships / metrics.membershipGoal) * 100 : 0;
+        const rebookPercent = metrics.rebookGoal > 0 ? (metrics.rebookRate / metrics.rebookGoal) * 100 : 0;
+        const overallScore = (enhancePercent + memberPercent + rebookPercent) / 3;
+        
+        return {
+          name: metrics.name,
+          enhancements: metrics.enhancements,
+          memberships: metrics.memberships,
+          rebookRate: metrics.rebookRate,
+          overallScore: overallScore
+        };
+      });
+      
+      // Sort by overall score
+      comparisonData.sort((a, b) => b.overallScore - a.overallScore);
+      
+      // Generate anonymous names
+      const anonymousNames = ['Team Member A', 'Team Member B', 'Team Member C', 'Team Member D', 'Team Member E', 'Team Member F', 'Team Member G'];
+      
+      let comparisonHtml = '';
+      comparisonData.forEach((staff, index) => {
+        const isCurrentUser = staff.name === currentStaffName;
+        const displayName = isCurrentUser ? 'You' : anonymousNames[index];
+        const rowClass = isCurrentUser ? 'you-row' : '';
+        
+        comparisonHtml += `
+          <tr class="${rowClass}">
+            <td><strong>${displayName}</strong></td>
+            <td>${staff.enhancements}</td>
+            <td>${staff.memberships}</td>
+            <td>${staff.rebookRate}%</td>
+            <td>${Math.round(staff.overallScore)}%</td>
+            <td>#${index + 1}</td>
+          </tr>
+        `;
+      });
+      
+      tableBody.innerHTML = comparisonHtml;
+    }
+    
+    function updatePeriodDisplay() {
+      if (!periodDates.start) return;
+      
+      const formatDate = (date) => date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      
+      const periodText = `Period: ${formatDate(periodDates.start)} - ${formatDate(periodDates.end)}`;
+      
+      const periodIndicators = document.querySelectorAll('.period-indicator');
+      periodIndicators.forEach(indicator => {
+        if (indicator) {
+          indicator.textContent = periodText;
+        }
+      });
+    }
+    
+    // Bonus Calculation Functions
+    function calculateEnhancementBonus(achieved, percentage) {
+      if (achieved === 0) return 0;
+      
+      let rate = 0.70; // Default rate for <80%
+      if (percentage >= 90) {
+        rate = 0.90;
+      } else if (percentage >= 80) {
+        rate = 0.80;
+      }
+      
+      return achieved * rate;
+    }
+    
+    function calculateMembershipBonus(achieved) {
+      if (achieved === 0) return 0;
+      
+      let rate = 10; // Default rate for 1-9
+      if (achieved >= 15) {
+        rate = 20;
+      } else if (achieved >= 10) {
+        rate = 15;
+      }
+      
+      return achieved * rate;
+    }
+  </script>
+</body>
+</html>

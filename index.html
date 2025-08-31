@@ -1,3 +1,58 @@
+
+
+spa-performance-dashboard.html
+2,112 lines
+
+html
+
+
+performance-dashboard-fixed.html
+770 lines
+
+html
+
+
+spa-performance-dashboard copy.html
+1,748 lines
+
+html
+
+which one is most usable?  I only need to upload files then I will put the code onto github
+
+Looking at these three HTML files, the first one (spa-performance-dashboard.html) is the most usable for your file upload needs. Here's why:
+
+Key Advantages of the First File:
+Complete File Upload System: Has a fully functional file upload grid with visual feedback for 5 different CSV file types (memberships, sales, guest data, appointments, payroll)
+Comprehensive Dashboard Features:
+Full login system (staff and admin access)
+Team overview with performance metrics
+Individual staff dashboards with progress tracking
+Bonus calculation system
+Team comparison tables
+Period selection (current, previous, custom date ranges)
+Data Processing: Includes complete logic for calculating goals, performance metrics, and bonus structures based on uploaded CSV data
+User Interface: Well-designed with visual progress bars, status indicators, and professional styling
+Issues with the Other Files:
+Second file (performance-dashboard-fixed.html): This appears to be an incomplete refactoring attempt. It has better CORS handling for Google Sheets but lacks the complete dashboard functionality and file processing logic.
+Third file (spa-performance-dashboard copy.html): Similar to the first but has some display issues (corrupted characters in CSS) and focuses more on Google Sheets integration rather than file uploads.
+Recommendation:
+Use the first file (spa-performance-dashboard.html) as your base. It's the most complete solution with:
+
+Working file upload functionality
+Complete data processing
+Full dashboard features
+Proper user authentication
+Comprehensive reporting
+The file upload section is well-implemented with drag-and-drop styling, progress indicators, and automatic data processing once files are loaded. It will work perfectly for your GitHub deployment needs.
+
+
+
+
+
+
+spa-performance-dashboard.html
+69.14 KB •2,112 lines
+Formatting may be inconsistent from source
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -817,6 +872,7 @@
               <option value="Mariaelena Parra">Mariaelena Parra</option>
               <option value="Cheyenne Bringham">Cheyenne Bringham</option>
             </select>
+            <input type="text" id="staffIdInput" placeholder="Enter your Staff ID" class="login-input" maxlength="4" pattern="[0-9]{4}">
             <button class="login-btn" onclick="staffLogin()">Login as Staff</button>
           </div>
           
@@ -1106,7 +1162,7 @@
     let currentUser = null;
     let userRole = null;
     
-    // Experience Guides list
+    // Experience Guides list with Staff IDs
     const experienceGuides = [
       'Angela McNally',
       'Madison Jeske', 
@@ -1116,6 +1172,17 @@
       'Mariaelena Parra',
       'Cheyenne Bringham'
     ];
+    
+    // Staff ID mapping (4-digit IDs)
+    const staffIds = {
+      'Angela McNally': '1001',
+      'Madison Jeske': '1002',
+      'Di Fisher': '1003',
+      'Nicole Ortiz': '1004',
+      'Edward Franklin': '1005',
+      'Mariaelena Parra': '1006',
+      'Cheyenne Bringham': '1007'
+    };
     
     // Check for saved data on page load
     window.addEventListener('load', function() {
@@ -1137,40 +1204,26 @@
     });
     
     function setupFileUploadListeners() {
-      const membershipFile = document.getElementById('membershipFile');
-      if (membershipFile) {
-        membershipFile.addEventListener('change', function(e) {
-          handleFileUpload(e, 'membership');
-        });
-      }
+      const fileTypes = [
+        {id: 'membershipFile', type: 'membership'},
+        {id: 'salesFile', type: 'sales'},
+        {id: 'guestFile', type: 'guest'},
+        {id: 'appointmentFile', type: 'appointment'},
+        {id: 'payrollFile', type: 'payroll'}
+      ];
       
-      const salesFile = document.getElementById('salesFile');
-      if (salesFile) {
-        salesFile.addEventListener('change', function(e) {
-          handleFileUpload(e, 'sales');
-        });
-      }
-      
-      const guestFile = document.getElementById('guestFile');
-      if (guestFile) {
-        guestFile.addEventListener('change', function(e) {
-          handleFileUpload(e, 'guest');
-        });
-      }
-      
-      const appointmentFile = document.getElementById('appointmentFile');
-      if (appointmentFile) {
-        appointmentFile.addEventListener('change', function(e) {
-          handleFileUpload(e, 'appointment');
-        });
-      }
-      
-      const payrollFile = document.getElementById('payrollFile');
-      if (payrollFile) {
-        payrollFile.addEventListener('change', function(e) {
-          handleFileUpload(e, 'payroll');
-        });
-      }
+      fileTypes.forEach(fileType => {
+        const fileInput = document.getElementById(fileType.id);
+        if (fileInput) {
+          console.log(`Setting up listener for ${fileType.id}`);
+          fileInput.addEventListener('change', function(e) {
+            console.log(`File selected for ${fileType.type}:`, e.target.files[0]?.name);
+            handleFileUpload(e, fileType.type);
+          });
+        } else {
+          console.error(`File input not found: ${fileType.id}`);
+        }
+      });
     }
     
     function toggleDataSource(source) {
@@ -1225,7 +1278,7 @@
       }
       
       if (dataLoaded) {
-        document.getElementById('loadingStatus').innerHTML = '<span style="color: #4CAF50;">✓ Data loaded from local storage</span>';
+        document.getElementById('loadingStatus').innerHTML = '<span style="color: #4CAF50;">âœ“ Data loaded from local storage</span>';
         processAllData();
         
         // Hide data config section after a delay
@@ -1312,7 +1365,7 @@
         
         await Promise.all(fetchPromises);
         
-        loadingStatus.innerHTML = '<span style="color: #4CAF50;">✓ All data loaded successfully!</span>';
+        loadingStatus.innerHTML = '<span style="color: #4CAF50;">âœ“ All data loaded successfully!</span>';
         
         setTimeout(() => {
           document.getElementById('dataSourceSection').style.display = 'none';
@@ -1375,7 +1428,7 @@
         
         const loadingStatus = document.getElementById('loadingStatus');
         if (loadingStatus) {
-          loadingStatus.innerHTML += `<br><span style="color: #dc3545;">⚠️ Error loading ${type} data. Try using File Upload instead.</span>`;
+          loadingStatus.innerHTML += `<br><span style="color: #dc3545;">âš ï¸ Error loading ${type} data. Try using File Upload instead.</span>`;
         }
         
         throw error;
@@ -1401,38 +1454,38 @@
               membershipData = data;
               localStorage.setItem('membershipData', JSON.stringify(data));
               document.querySelector('#membershipUpload').classList.add('loaded');
-              document.querySelector('#membershipUpload .file-status').textContent = `✓ ${data.length} records`;
+              document.querySelector('#membershipUpload .file-status').textContent = `âœ“ ${data.length} records`;
               break;
             case 'sales':
               salesData = data;
               localStorage.setItem('salesData', JSON.stringify(data));
               document.querySelector('#salesUpload').classList.add('loaded');
-              document.querySelector('#salesUpload .file-status').textContent = `✓ ${data.length} records`;
+              document.querySelector('#salesUpload .file-status').textContent = `âœ“ ${data.length} records`;
               break;
             case 'guest':
               guestData = data;
               localStorage.setItem('guestData', JSON.stringify(data));
               document.querySelector('#guestUpload').classList.add('loaded');
-              document.querySelector('#guestUpload .file-status').textContent = `✓ ${data.length} records`;
+              document.querySelector('#guestUpload .file-status').textContent = `âœ“ ${data.length} records`;
               break;
             case 'appointment':
               appointmentData = data;
               localStorage.setItem('appointmentData', JSON.stringify(data));
               document.querySelector('#appointmentUpload').classList.add('loaded');
-              document.querySelector('#appointmentUpload .file-status').textContent = `✓ ${data.length} records`;
+              document.querySelector('#appointmentUpload .file-status').textContent = `âœ“ ${data.length} records`;
               break;
             case 'payroll':
               payrollData = data;
               localStorage.setItem('payrollData', JSON.stringify(data));
               document.querySelector('#payrollUpload').classList.add('loaded');
-              document.querySelector('#payrollUpload .file-status').textContent = `✓ ${data.length} records`;
+              document.querySelector('#payrollUpload .file-status').textContent = `âœ“ ${data.length} records`;
               break;
           }
           
           // Check if all files are loaded
           if (membershipData.length > 0 && salesData.length > 0 && 
               guestData.length > 0 && appointmentData.length > 0 && payrollData.length > 0) {
-            document.getElementById('loadingStatus').innerHTML = '<span style="color: #4CAF50;">✓ All files loaded successfully!</span>';
+            document.getElementById('loadingStatus').innerHTML = '<span style="color: #4CAF50;">âœ“ All files loaded successfully!</span>';
           }
         };
         reader.readAsText(file);
@@ -1689,8 +1742,31 @@
     // Login Functions
     function staffLogin() {
       const selectedStaff = document.getElementById('staffLoginSelect').value;
+      const enteredId = document.getElementById('staffIdInput').value.trim();
+      
+      // Clear any existing error messages
+      const existingError = document.querySelector('.staff-access-denied');
+      if (existingError) {
+        existingError.remove();
+      }
+      
       if (!selectedStaff) {
         alert('Please select your name from the dropdown');
+        return;
+      }
+      
+      if (!enteredId) {
+        alert('Please enter your Staff ID');
+        return;
+      }
+      
+      // Verify staff ID matches selected staff member
+      if (staffIds[selectedStaff] !== enteredId) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'staff-access-denied';
+        errorDiv.textContent = 'Invalid Staff ID. Please check your ID and try again.';
+        errorDiv.style.cssText = 'color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 5px; margin-top: 10px;';
+        document.getElementById('staffIdInput').insertAdjacentElement('afterend', errorDiv);
         return;
       }
       
@@ -1729,14 +1805,20 @@
       document.getElementById('adminTab').classList.add('hidden');
       document.getElementById('individualTab').classList.add('hidden');
       
-      // Clear password field
+      // Clear all input fields
       document.getElementById('adminPassword').value = '';
       document.getElementById('staffLoginSelect').selectedIndex = 0;
+      document.getElementById('staffIdInput').value = '';
       
-      // Remove access denied messages
+      // Remove any error messages
       const accessDenied = document.querySelector('.access-denied');
       if (accessDenied) {
         accessDenied.remove();
+      }
+      
+      const staffAccessDenied = document.querySelector('.staff-access-denied');
+      if (staffAccessDenied) {
+        staffAccessDenied.remove();
       }
       
       showTab('login');

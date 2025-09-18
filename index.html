@@ -661,26 +661,44 @@
   </div>
   
 
-<!-- Simple Staff Manager Popup -->
-<div id="simpleStaffManager" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 10000; width: 400px;">
-    <h3 style="margin-bottom: 20px;">Quick Staff Manager</h3>
+<!-- Enhanced Staff Manager Popup -->
+<div id="simpleStaffManager" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 10000; width: 500px; max-width: 90%;">
+    <h3 style="margin-bottom: 20px; color: #333;">Staff Management Center</h3>
     
-    <div style="margin-bottom: 20px;">
-        <h4 style="font-size: 14px; margin-bottom: 10px;">Add New Staff:</h4>
-        <input type="text" id="quickStaffName" placeholder="Name" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
-        <input type="text" id="quickStaffID" placeholder="Staff ID (e.g., 1008)" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
-        <button onclick="quickAddStaff()" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Add Staff</button>
+    <!-- Add New Staff Section -->
+    <div style="margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="font-size: 16px; margin-bottom: 15px; color: #28a745;">➕ Add New Staff Member</h4>
+        <input type="text" id="quickStaffName" placeholder="Full Name (e.g., John Smith)" 
+               style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        <input type="email" id="quickStaffEmail" placeholder="Email (e.g., john.smith@company.com)" 
+               style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        <select id="quickStaffTenure" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+            <option value="0">New Hire (0-1 months)</option>
+            <option value="1">1 month</option>
+            <option value="2">2 months</option>
+            <option value="3">3-6 months</option>
+            <option value="6">6-12 months</option>
+            <option value="12">1+ years</option>
+        </select>
+        <button onclick="addStaffMember()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600;">
+            Add Staff Member
+        </button>
     </div>
     
-    <div style="margin-bottom: 20px;">
-        <h4 style="font-size: 14px; margin-bottom: 10px;">Remove Staff:</h4>
-        <select id="quickRemoveSelect" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    <!-- Remove Staff Section -->
+    <div style="margin-bottom: 20px; padding: 20px; background: #fff5f5; border-radius: 8px;">
+        <h4 style="font-size: 16px; margin-bottom: 15px; color: #dc3545;">➖ Remove Staff Member</h4>
+        <select id="quickRemoveSelect" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
             <option value="">Select staff to remove...</option>
         </select>
-        <button onclick="quickRemoveStaff()" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Remove Selected</button>
+        <button onclick="removeStaffMember()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600;">
+            Remove Selected Staff
+        </button>
     </div>
     
-    <button onclick="closeSimpleStaffManager()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
+    <button onclick="closeSimpleStaffManager()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600;">
+        Close
+    </button>
 </div>
 
 <script>
@@ -2105,85 +2123,234 @@ Object.keys(staffData).forEach(name => {
   staffData[name].bonus = bonusCalc.total;
 });
 
-// Simple Staff Management Functions
+// ============================================
+// WORKING STAFF MANAGEMENT SYSTEM
+// ============================================
+
+// Initialize staff registry
+window.staffRegistry = window.staffRegistry || {};
+
+// Enhanced function to open staff manager
 function openSimpleStaffManager() {
     document.getElementById('simpleStaffManager').style.display = 'block';
-    
-    // Populate the remove dropdown
-    const select = document.getElementById('quickRemoveSelect');
-    select.innerHTML = '<option value="">Select staff to remove...</option>';
-    Object.keys(staffPasswords).forEach(name => {
-        select.innerHTML += `<option value="${name}">${name}</option>`;
-    });
+    populateRemoveDropdown();
 }
 
+// Close staff manager
 function closeSimpleStaffManager() {
     document.getElementById('simpleStaffManager').style.display = 'none';
 }
 
-function quickAddStaff() {
-    const name = document.getElementById('quickStaffName').value.trim();
-    const id = document.getElementById('quickStaffID').value.trim();
+// Populate remove dropdown with current staff
+function populateRemoveDropdown() {
+    const select = document.getElementById('quickRemoveSelect');
+    if (!select) return;
     
-    if (!name || !id) {
-        alert('Please enter both name and ID');
+    select.innerHTML = '<option value="">Select staff to remove...</option>';
+    
+    // Add all staff from staffData
+    Object.keys(staffData).forEach(name => {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+}
+
+// Add new staff member
+function addStaffMember() {
+    const name = document.getElementById('quickStaffName').value.trim();
+    const email = document.getElementById('quickStaffEmail').value.trim();
+    const tenure = parseInt(document.getElementById('quickStaffTenure').value) || 0;
+    
+    if (!name) {
+        showNotification('Please enter a name', 'error');
         return;
     }
     
-    // Add to staffPasswords
-    staffPasswords[name] = id;
+    if (!email || !email.includes('@')) {
+        showNotification('Please enter a valid email', 'error');
+        return;
+    }
     
-    // Add to staffData with default values
+    // Check if staff already exists
+    if (staffData[name]) {
+        showNotification('Staff member already exists', 'error');
+        return;
+    }
+    
+    // Initialize staff in staffData with baseline values
     staffData[name] = {
-        enhance: 0, enhanceGoal: 10, member: 0, memberGoal: 2,
-        rebook: 0, hours: 0, eligibleGuests: 0,
-        totalGuests: 0, prevPerformance: 0, tenureMonths: 0
+        enhance: 0,
+        enhanceGoal: tenure >= 3 ? 10 : 5,
+        member: 0,
+        memberGoal: tenure >= 3 ? 3 : 2,
+        rebook: 0,
+        hours: 0,
+        eligibleGuests: 0,
+        totalGuests: 0,
+        prevPerformance: 0,
+        tenureMonths: tenure,
+        bonus: 0
     };
     
-    // Update the login dropdown
+    // Store email mapping
+    if (!window.dynamicStaffEmails) {
+        window.dynamicStaffEmails = {};
+    }
+    window.dynamicStaffEmails[name] = email;
+    
+    // Save to Firebase staff registry if admin
+    if (typeof database !== 'undefined' && currentUser === 'admin') {
+        const staffRef = database.ref(`dashboard/staffRegistry/${name}`);
+        staffRef.set({
+            email: email,
+            tenureMonths: tenure,
+            addedDate: new Date().toISOString(),
+            addedBy: currentUser,
+            active: true
+        }).then(() => {
+            console.log('Staff added to Firebase registry');
+        }).catch(error => {
+            console.error('Error saving to Firebase:', error);
+        });
+    }
+    
+    // Update login dropdown
     const loginSelect = document.getElementById('staffSelect');
     if (loginSelect) {
-        loginSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        // Check if option already exists
+        let exists = false;
+        for (let option of loginSelect.options) {
+            if (option.value === name) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            const newOption = document.createElement('option');
+            newOption.value = name;
+            newOption.textContent = name;
+            loginSelect.appendChild(newOption);
+        }
     }
     
     // Clear inputs
     document.getElementById('quickStaffName').value = '';
-    document.getElementById('quickStaffID').value = '';
+    document.getElementById('quickStaffEmail').value = '';
+    document.getElementById('quickStaffTenure').value = '0';
     
-    alert(`${name} added successfully with ID ${id}`);
-    closeSimpleStaffManager();
+    // Update remove dropdown
+    populateRemoveDropdown();
+    
+    showNotification(`${name} added successfully`, 'success');
+    
+    // Refresh dashboard if admin view is active
+    if (currentUser === 'admin') {
+        showAdminDashboard();
+    }
 }
 
-function quickRemoveStaff() {
+// Remove staff member
+function removeStaffMember() {
     const name = document.getElementById('quickRemoveSelect').value;
     
     if (!name) {
-        alert('Please select a staff member to remove');
+        showNotification('Please select a staff member to remove', 'error');
         return;
     }
     
-    if (confirm(`Are you sure you want to remove ${name}?`)) {
-        // Remove from staffPasswords
-        delete staffPasswords[name];
-        
-        // Remove from staffData
-        delete staffData[name];
-        
-        // Update the login dropdown
-        const loginSelect = document.getElementById('staffSelect');
-        if (loginSelect) {
-            const options = loginSelect.querySelectorAll('option');
-            options.forEach(option => {
-                if (option.value === name) {
-                    option.remove();
-                }
-            });
+    if (!confirm(`Are you sure you want to remove ${name}? This will:\n- Remove them from all dashboards\n- Mark them as inactive in the system\n- Preserve their historical data`)) {
+        return;
+    }
+    
+    // Mark as inactive in Firebase rather than delete (preserves history)
+    if (typeof database !== 'undefined' && currentUser === 'admin') {
+        const staffRef = database.ref(`dashboard/staffRegistry/${name}`);
+        staffRef.update({
+            active: false,
+            deactivatedDate: new Date().toISOString(),
+            deactivatedBy: currentUser
+        }).then(() => {
+            console.log('Staff marked as inactive in Firebase');
+        }).catch(error => {
+            console.error('Error updating Firebase:', error);
+        });
+    }
+    
+    // Remove from local staffData
+    delete staffData[name];
+    
+    // Remove from email mappings
+    if (window.dynamicStaffEmails) {
+        delete window.dynamicStaffEmails[name];
+    }
+    
+    // Update login dropdown
+    const loginSelect = document.getElementById('staffSelect');
+    if (loginSelect) {
+        for (let i = 0; i < loginSelect.options.length; i++) {
+            if (loginSelect.options[i].value === name) {
+                loginSelect.remove(i);
+                break;
+            }
         }
-        
-        alert(`${name} removed successfully`);
-        closeSimpleStaffManager();
+    }
+    
+    showNotification(`${name} has been removed`, 'success');
+    
+    // Update remove dropdown
+    document.getElementById('quickRemoveSelect').value = '';
+    populateRemoveDropdown();
+    
+    // Refresh dashboard if admin view is active
+    if (currentUser === 'admin') {
+        showAdminDashboard();
     }
 }
+
+// Load staff registry from Firebase on admin login
+function loadStaffRegistry() {
+    if (typeof database === 'undefined') return;
+    
+    database.ref('dashboard/staffRegistry').once('value')
+        .then(snapshot => {
+            const registry = snapshot.val();
+            if (registry) {
+                window.staffRegistry = registry;
+                
+                // Add any active staff from registry that aren't in staffData
+                Object.entries(registry).forEach(([name, data]) => {
+                    if (data.active !== false && !staffData[name]) {
+                        staffData[name] = {
+                            enhance: 0,
+                            enhanceGoal: 5,
+                            member: 0,
+                            memberGoal: 2,
+                            rebook: 0,
+                            hours: 0,
+                            eligibleGuests: 0,
+                            totalGuests: 0,
+                            prevPerformance: 0,
+                            tenureMonths: data.tenureMonths || 0,
+                            bonus: 0
+                        };
+                        
+                        // Update email mapping
+                        if (data.email) {
+                            if (!window.dynamicStaffEmails) {
+                                window.dynamicStaffEmails = {};
+                            }
+                            window.dynamicStaffEmails[name] = data.email;
+                        }
+                    }
+                });
+                
+                console.log('Staff registry loaded from Firebase');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading staff registry:', error);
+        });
+}
+
 
 // Centralized date parsing function
 function parseDateConsistent(dateStr) {
@@ -2740,10 +2907,11 @@ function loginStaff() {
       } else if (error.code === 'auth/too-many-requests') {
         showNotification('Too many failed attempts. Try again later.', 'error');
       } else {
-        showNotification('Login failed: ' + error.message, 'error');
+     showNotification('Login failed: ' + error.message, 'error');
       }
     });
-    }
+}  // This closes loginStaff function
+
 function loginAdmin() {
   const password = document.getElementById('adminPassword').value;
   
@@ -2755,6 +2923,7 @@ function loginAdmin() {
   auth.signInWithEmailAndPassword('admin@salesdashboard.com', password)
     .then((userCredential) => {
       currentUser = 'admin';
+      loadStaffRegistry();
       loadAllDataFromFirebase();
       showAdminDashboard();
       showNotification('Admin access granted', 'success');

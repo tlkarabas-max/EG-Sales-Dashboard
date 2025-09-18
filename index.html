@@ -581,7 +581,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Middle Column - Processing & Management -->
     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
       <h4 style="font-size: 15px; margin-bottom: 15px; color: #495057; font-weight: 600;">
@@ -615,6 +615,20 @@
           <span>⚡</span> Process All Data
         </button>
         
+        <!-- Staff List Upload - MOVED HERE -->
+        <button onclick="document.getElementById('staffListFile').click()" 
+                style="background: white; color: #495057; 
+                       border: 2px solid #dee2e6; padding: 12px 20px; 
+                       border-radius: 6px; cursor: pointer; font-size: 14px; 
+                       font-weight: 600; display: flex; align-items: center; 
+                       justify-content: center; gap: 8px; transition: all 0.3s;"
+                onmouseover="this.style.borderColor='#6c757d'; this.style.color='#6c757d'; this.style.background='#f8f9fa';"
+                onmouseout="this.style.borderColor='#dee2e6'; this.style.color='#495057'; this.style.background='white';">
+          <span>👤</span> Update Staff List CSV
+        </button>
+        <input type="file" id="staffListFile" accept=".csv" style="display: none;" 
+               onchange="handleStaffListUpload(event)">
+        
         <!-- Divider -->
         <div style="border-top: 1px solid #dee2e6; margin: 5px 0;"></div>
         
@@ -627,7 +641,7 @@
                        justify-content: center; gap: 8px; transition: all 0.3s;"
                 onmouseover="this.style.borderColor='#007bff'; this.style.color='#007bff'; this.style.background='#f8f9fa';"
                 onmouseout="this.style.borderColor='#dee2e6'; this.style.color='#495057'; this.style.background='white';">
-          <span>👥</span> Manage Staff Members
+          <span>👥</span> Quick Add/Remove Staff
         </button>
         
         <!-- Status Indicator -->
@@ -646,18 +660,7 @@
     </div>
   </div>
   
-  <!-- Pay Period Filter Section -->
-  <div id="payPeriodFilter" style="display: none; background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
-    <h4 style="font-size: 14px; margin-bottom: 10px; color: #495057; font-weight: 600;">
-      Filter by Pay Period
-    </h4>
-    <select id="payPeriodSelect" onchange="filterByPayPeriod(this.value)" 
-            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ced4da; 
-                   font-size: 14px; background: white; color: #495057;">
-      <option value="all">All Periods</option>
-    </select>
-  </div>
-</div>
+
 <!-- Simple Staff Manager Popup -->
 <div id="simpleStaffManager" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 10000; width: 400px;">
     <h3 style="margin-bottom: 20px;">Quick Staff Manager</h3>
@@ -681,22 +684,20 @@
 </div>
 
 <script>
+console.log("SCRIPT START - JavaScript is running");
 let BONUS_RATES = {
   enhancement: {},
   membership: {},
   performanceBonus: 0
 };
-
 const PERFORMANCE_THRESHOLDS = {
   excellent: 100,
   good: 80,
   acceptable: 60
 };
-
 const CONVERSION_CONFIG = {
   localNonMemberRate: 0.366
 };
-
 /**
  * CSV Data Error Handling Module
  * Robust error handling for dashboard CSV processing
@@ -2104,16 +2105,6 @@ Object.keys(staffData).forEach(name => {
   staffData[name].bonus = bonusCalc.total;
 });
 
-const staffPasswords = {
-  'Angela McNally': '1001',
-  'Anna Mercadante': '1004', 
-  'Madison Jeske': '1002',
-  'Di Fisher': '1003',
-  'Edward Franklin': '1005',
-  'Mariaelena Parra': '1006',
-  'Cheyenne Bringham': '1007'
-};
-
 // Simple Staff Management Functions
 function openSimpleStaffManager() {
     document.getElementById('simpleStaffManager').style.display = 'block';
@@ -2708,7 +2699,6 @@ function calculatePerformanceScore(data) {
   return Math.round(convScore + enhanceScore + rebookScore + productivityScore);
 }
 
-// Login functions
 function loginStaff() {
   const name = document.getElementById('staffSelect').value;
   const password = document.getElementById('staffPassword').value;
@@ -2718,15 +2708,42 @@ function loginStaff() {
     return;
   }
   
-  if (staffPasswords[name] === password) {
-    currentUser = name;
-    showStaffDashboard();
-    showNotification(`Welcome, ${name}!`, 'success');
-  } else {
-    showNotification('Invalid Staff ID', 'error');
+  // First try dynamic list from CSV, fallback to hardcoded
+  const email = window.dynamicStaffEmails?.[name] || 
+    {
+      'Angela McNally': 'angela.mcnally@salesdashboard.com',
+      'Madison Jeske': 'madison.jeske@salesdashboard.com',
+      'Di Fisher': 'di.fisher@salesdashboard.com',
+      'Jessica Watts': 'jessica.watts@salesdashboard.com',
+      'Nicole Rice': 'nicole.rice@salesdashboard.com'
+    }[name];
+  
+  if (!email) {
+    showNotification('Staff member not configured', 'error');
+    return;
   }
-}
-
+  
+  // Use Firebase authentication
+  auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      currentUser = name;
+      showStaffDashboard();
+      showNotification(`Welcome, ${name}!`, 'success');
+    })
+    .catch((error) => {
+      console.error('Staff login error:', error.code);
+      
+      if (error.code === 'auth/wrong-password') {
+        showNotification('Incorrect password', 'error');
+      } else if (error.code === 'auth/user-not-found') {
+        showNotification('User not found - contact admin', 'error');
+      } else if (error.code === 'auth/too-many-requests') {
+        showNotification('Too many failed attempts. Try again later.', 'error');
+      } else {
+        showNotification('Login failed: ' + error.message, 'error');
+      }
+    });
+    }
 function loginAdmin() {
   const password = document.getElementById('adminPassword').value;
   
@@ -2735,10 +2752,10 @@ function loginAdmin() {
     return;
   }
   
-  // Use Firebase authentication with your admin email and password
   auth.signInWithEmailAndPassword('admin@salesdashboard.com', password)
     .then((userCredential) => {
       currentUser = 'admin';
+      loadAllDataFromFirebase();
       showAdminDashboard();
       showNotification('Admin access granted', 'success');
     })
@@ -2969,11 +2986,11 @@ function generatePerformanceTips(data, actualConv, convGoal) {
     tips.push('Consider mentoring newer team members');
   }
   
-  document.getElementById('performanceTips').innerHTML = tips.map(tip => `<li>${tip}</li>`).join('');
-  document.getElementById('quickActionsPanel').style.display = 'block';  // ADD THIS LINE
-}  // This closes showStaffDashboard
+document.getElementById('performanceTips').innerHTML = tips.map(tip => `<li>${tip}</li>`).join('');
+  document.getElementById('quickActionsPanel').style.display = 'block';
+}  
 
-function showAdminDashboard() { 
+function showAdminDashboard() {
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('staffView').classList.add('hidden');
   document.getElementById('adminView').classList.remove('hidden');
@@ -3091,6 +3108,7 @@ function handleAppointmentUpload(event) {
   reader.onload = function(e) {
     uploadedData.appointments = e.target.result;
     uploadTimestamps.appointments = new Date().toISOString();  // ADD THIS
+     saveDataToFirebase('appointments', e.target.result);
     updateUploadTimestamps();  // ADD THIS
     showNotification('Appointment data loaded', 'success');
   };
@@ -3105,6 +3123,7 @@ function handleMembershipUpload(event) {
   reader.onload = function(e) {
     uploadedData.memberships = e.target.result;
     uploadTimestamps.memberships = new Date().toISOString();  // ADD THIS
+     saveDataToFirebase('memberships', e.target.result);
     updateUploadTimestamps();  // ADD THIS
     showNotification('Membership data loaded', 'success');
   };
@@ -3118,7 +3137,8 @@ function handleSalesUpload(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     uploadedData.sales = e.target.result;
-    uploadTimestamps.sales = new Date().toISOString();  // ADD THIS
+    uploadTimestamps.sales = new Date().toISOString(); 
+    saveDataToFirebase('sales', e.target.result); // ADD THIS
     updateUploadTimestamps();  // ADD THIS
     showNotification('Sales data loaded', 'success');
   };
@@ -3133,6 +3153,7 @@ function handleOOTUpload(event) {
   reader.onload = function(e) {
     uploadedData.oot = e.target.result;
     uploadTimestamps.oot = new Date().toISOString();  // ADD THIS
+    saveDataToFirebase('oot', e.target.result);
     updateUploadTimestamps();  // ADD THIS
     showNotification('OOT data loaded', 'success');
   };
@@ -3142,18 +3163,86 @@ function handleOOTUpload(event) {
 function handlePayrollUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
+   const staffList = window.dashboardData?.staffList || [];
+  
+  const reader = new FileReader();
+reader.onload = function(e) {
+  uploadedData.payroll = e.target.result;
+  uploadTimestamps.payroll = new Date().toISOString();
+  saveDataToFirebase('payroll', e.target.result);  // THIS IS MISSING!
+  updateUploadTimestamps();
+  payrollData = parseCSV(e.target.result);
+  extractPayPeriods();
+  showNotification('Payroll hours data loaded', 'success');
+};
+reader.readAsText(file);
+
+// Find and REPLACE the existing handleStaffListUpload function (around line 2067-2080)
+// with this updated version:
+
+function handleStaffListUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
   
   const reader = new FileReader();
   reader.onload = function(e) {
-    uploadedData.payroll = e.target.result;
-    uploadTimestamps.payroll = new Date().toISOString();  // ADD THIS
-    updateUploadTimestamps();  // ADD THIS
-    payrollData = parseCSV(e.target.result);
-    extractPayPeriods();
-    showNotification('Payroll hours data loaded', 'success');
+    const csvData = e.target.result;
+    const parsed = parseCSV(csvData);
+    
+    // Store data and timestamp
+    uploadedData.staffList = csvData;
+    uploadTimestamps.staffList = new Date().toISOString();
+    
+    // Save to Firebase if admin
+    if (currentUser === 'admin') {
+      saveDataToFirebase('staffList', csvData);
+    }
+    
+    updateUploadTimestamps();
+    
+    // Update staff dropdown dynamically
+    updateStaffDropdown(parsed);
+    
+    // Store in localStorage for persistence
+    localStorage.setItem('staffList', JSON.stringify(parsed));
+    
+    showNotification('Staff list updated successfully', 'success');
   };
   reader.readAsText(file);
 }
+
+// Also update the updateStaffDropdown function to ensure it works correctly:
+function updateStaffDropdown(staffList) {
+  const dropdown = document.getElementById('staffSelect');
+  if (!dropdown) return;
+  
+  dropdown.innerHTML = '<option value="">Select your name...</option>';
+  
+  // Also update the staff emails mapping
+  window.dynamicStaffEmails = {};
+  
+  staffList.forEach(staff => {
+    // Check for Active status if the column exists, otherwise include all
+    if (!staff.Status || staff.Status === 'Active') {
+      dropdown.innerHTML += `<option value="${staff.Name}">${staff.Name}</option>`;
+      
+      // Map emails if they exist
+      if (staff.Email) {
+        window.dynamicStaffEmails[staff.Name] = staff.Email;
+      }
+    }
+  });
+}
+  
+  // Also update the staff emails mapping
+  window.dynamicStaffEmails = {};
+  staffList.forEach(staff => {
+    if (staff.Status === 'Active') {
+      window.dynamicStaffEmails[staff.Name] = staff.Email;
+    }
+  });
+}
+
 // Handle bonus structure CSV upload
 function handleBonusUpload(event) {
   const file = event.target.files[0];
@@ -3280,38 +3369,8 @@ function extractPayPeriods() {
   });
   
   payPeriods.sort((a, b) => b.start - a.start);
-  updatePayPeriodDropdown();
 }
 
-function updatePayPeriodDropdown() {
-  const dropdown = document.getElementById('payPeriodSelect');
-  const filterDiv = document.getElementById('payPeriodFilter');
-  
-  if (!dropdown || !filterDiv) return;
-  
-  dropdown.innerHTML = '<option value="all">All Periods</option>';
-  
-  if (payPeriods.length > 0) {
-    payPeriods.forEach((period, index) => {
-      dropdown.innerHTML += `<option value="${index}">${period.label}</option>`;
-    });
-    filterDiv.style.display = 'block';
-  }
-}
-
-function filterByPayPeriod(value) {
-  if (value === 'all') {
-    processAllData();
-    return;
-  }
-  
-  const index = parseInt(value);
-  if (index >= 0 && index < payPeriods.length) {
-    const period = payPeriods[index];
-    showNotification(`Filtering data for period: ${period.label}`, 'success');
-    processFilteredData(period);
-  }
-}
 function processFilteredData(period) {
   parsedAppointments = uploadedData.appointments ? parseCSV(uploadedData.appointments) : null;
   parsedMemberships = uploadedData.memberships ? parseCSV(uploadedData.memberships) : null;
@@ -3645,128 +3704,9 @@ function logout() {
   const quickPanel = document.getElementById('quickActionsPanel');
   if (quickPanel) quickPanel.style.display = 'none';
   
-  stopAutoSave();  
-  clearAutoSave();
-  
   showNotification('Logged out successfully', 'success');
 }
-const AUTO_SAVE_KEY = 'dashboardAutoSave';
-const AUTO_SAVE_INTERVAL = 30000;
-let autoSaveTimer = null;
 
-function autoSaveUploads() {
-  try {
-    const saveData = {
-      timestamp: new Date().toISOString(),
-      uploadedData: uploadedData,
-      staffData: staffData,
-      periodData: periodData,
-      currentPeriod: currentPeriod,
-      payrollData: payrollData,
-      payPeriods: payPeriods
-    };
-    
-    const jsonString = JSON.stringify(saveData);
-    sessionStorage.setItem(AUTO_SAVE_KEY, jsonString);
-    console.log('Auto-saved at', new Date().toLocaleTimeString());
-    
-  } catch (error) {
-    console.error('Auto-save failed:', error);
-  }
-}
-
-function restoreAutoSave() {
-  try {
-    const saved = sessionStorage.getItem(AUTO_SAVE_KEY);
-    
-    if (!saved) {
-      showNotification('No auto-saved data found', 'info');
-      return false;
-    }
-    
-    const saveData = JSON.parse(saved);
-    const savedTime = new Date(saveData.timestamp);
-    const hoursSince = (Date.now() - savedTime) / 3600000;
-    
-    if (hoursSince < 24) {
-      const timeString = savedTime.toLocaleString();
-      const restore = confirm(`Found auto-saved data from ${timeString}. Would you like to restore it?`);
-      
-      if (restore) {
-        uploadedData = saveData.uploadedData || {
-          appointments: null,
-          memberships: null,
-          sales: null,
-          oot: null,
-          payroll: null
-        };
-        
-        staffData = saveData.staffData || staffData;
-        periodData = saveData.periodData || periodData;
-        currentPeriod = saveData.currentPeriod || 'current';
-        payrollData = saveData.payrollData || null;
-        payPeriods = saveData.payPeriods || [];
-        
-        if (payPeriods.length > 0) {
-          updatePayPeriodDropdown();
-        }
-        
-        if (currentUser === 'admin') {
-          showAdminDashboard();
-        }
-        
-        showNotification('Previous session restored successfully', 'success');
-        return true;
-      }
-    } else {
-      sessionStorage.removeItem(AUTO_SAVE_KEY);
-      showNotification('Auto-saved data expired and was cleared', 'info');
-    }
-  } catch (error) {
-    console.error('Failed to restore auto-save:', error);
-    sessionStorage.removeItem(AUTO_SAVE_KEY);
-    showNotification('Failed to restore saved data', 'error');
-  }
-  
-  return false;
-}
-
-function startAutoSave() {
-  stopAutoSave();
-  autoSaveUploads();
-  autoSaveTimer = setInterval(autoSaveUploads, AUTO_SAVE_INTERVAL);
-}
-
-function stopAutoSave() {
-  if (autoSaveTimer) {
-    clearInterval(autoSaveTimer);
-    autoSaveTimer = null;
-  }
-}
-
-function clearAutoSave() {
-  sessionStorage.removeItem(AUTO_SAVE_KEY);
-  console.log('Auto-saved data cleared');
-}
-
-window.addEventListener('error', function(event) {
-  console.error('Unexpected error:', event.error);
-  autoSaveUploads();
-  showNotification('An error occurred. Your data has been auto-saved.', 'warning');
-});
-
-window.addEventListener('beforeunload', function(event) {
-  autoSaveUploads();
-});
-
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    const restored = restoreAutoSave();
-    if (restored) {
-      console.log('Auto-saved data restored');
-    }
-  }, 500);
-});
 // Quick Actions Panel Functions
 function exportToCSV() {
   const rows = [['Name', 'Hours', 'Enhancements', 'Memberships', 'Conversion%', 'Rebook%', 'Bonus']];
@@ -3814,6 +3754,13 @@ function toggleQuickActions() {
 // DOMContentLoaded should be SEPARATE, not inside toggleQuickActions
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Enhanced Performance Dashboard initialized');
+ 
+  // Load saved staff list if exists
+  const savedStaffList = localStorage.getItem('staffList');
+  if (savedStaffList) {
+    updateStaffDropdown(JSON.parse(savedStaffList));
+    console.log('Staff list auto-loaded from saved settings');
+  }
   
   // Debug appointment input
   const appointmentInput = document.getElementById('appointmentFile');
@@ -3846,9 +3793,6 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Error loading saved bonus structure:', error);
     }
   }
-});
-</script>
-<div cla...
 });
 </script>
 <div class="quick-actions" id="quickActionsPanel" style="display: none;">
@@ -3915,8 +3859,6 @@ body { font-size: 16px !important; }
 /* Tips section */
 .tips-section h3 { font-size: 18px !important; }
 .tips-section li { font-size: 16px !important; }
-tips-section h3 { font-size: 18px !important; }
-.tips-section li { font-size: 16px !important; }  /* <- Line 3293 */
 
 /* Quick Actions Panel Styles - ADD ALL THIS STARTING AT LINE 3294 */
 .quick-actions {
@@ -3994,8 +3936,9 @@ tips-section h3 { font-size: 18px !important; }
 
 <!-- Firebase Authentication -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<!-- ADD THESE TWO LINES HERE -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
 // Firebase configuration
 const firebaseConfig = {
@@ -4012,15 +3955,93 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+// Initialize database reference
+const database = firebase.database();
 
-// Map staff names to emails
-const staffEmails = {
-  'Angela McNally': 'angela.mcnally@salesdashboard.com',
-  'Madison Jeske': 'madison.jeske@salesdashboard.com',
-  'Di Fisher': 'di.fisher@salesdashboard.com',
-  'Jessica Watts': 'Jessica.Watts@salesdashboard.com',
-  'Nicole Rice': 'Nicole.Rice@salesdashboard.com',
-};
+// ============================================
+// FIREBASE DATABASE INTEGRATION
+// ============================================
+
+// Save CSV data to Firebase
+function saveDataToFirebase(dataType, csvContent) {
+  if (currentUser !== 'admin') {
+    console.log('Only admin can save data');
+    return;
+  }
+  
+  const dataRef = database.ref(`dashboard/csvData/${dataType}`);
+  dataRef.set({
+    content: csvContent,
+    timestamp: new Date().toISOString(),
+    updatedBy: currentUser
+  }).then(() => {
+    console.log(`${dataType} saved to Firebase`);
+  }).catch((error) => {
+    console.error('Error saving to Firebase:', error);
+  });
+}
+
+// Load all CSV data from Firebase
+function loadAllDataFromFirebase() {
+  showNotification('Loading data from cloud...', 'info');
+  
+const dataTypes = ['appointments', 'memberships', 'sales', 'oot', 'payroll', 'bonusStructure', 'staffList'];
+  let loadedCount = 0;
+  
+  dataTypes.forEach(dataType => {
+    database.ref(`dashboard/csvData/${dataType}`).once('value')
+      .then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.content) {
+          uploadedData[dataType] = data.content;
+          uploadTimestamps[dataType] = data.timestamp;
+          
+          // Special handling for bonus structure
+          if (dataType === 'bonusStructure') {
+            try {
+              const bonusData = parseCSV(data.content);
+              updateBonusRates(bonusData);
+              
+              const btn = document.getElementById('bonusUploadBtn');
+              if (btn) {
+                btn.style.background = '#e8f5e9';
+                btn.style.borderColor = '#4caf50';
+                btn.innerHTML = 
+                  '<span style="font-size: 16px;">💵</span>' +
+                  '<span>Bonus Structure ✓</span>' +
+                  '<span style="margin-left: auto; color: #4caf50; font-size: 12px;">LOADED</span>';
+              }
+            } catch (error) {
+              console.error('Error processing bonus data:', error);
+            }
+          }
+          
+          // Special handling for payroll
+          if (dataType === 'payroll') {
+            payrollData = parseCSV(data.content);
+            extractPayPeriods();
+          }
+        }
+        
+        loadedCount++;
+        if (loadedCount === dataTypes.length) {
+          updateUploadTimestamps();
+          showNotification('All data loaded from cloud', 'success');
+          
+          // Auto-process if all required data is present
+          if (uploadedData.sales || uploadedData.appointments) {
+            setTimeout(() => {
+              processAllData();
+            }, 500);
+          }
+        }
+      })
+      .catch(error => {
+        console.error(`Error loading ${dataType}:`, error);
+        loadedCount++;
+      });
+  });
+}
 
 // Check authentication state
 auth.onAuthStateChanged((user) => {

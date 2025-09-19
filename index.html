@@ -2565,17 +2565,7 @@ function loginStaff() {
   const emailName = name.toLowerCase().replace(' ', '.');
   const email = `${emailName}@salesdashboard.com`;
   
-  auth.signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      currentUser = name;
-      showStaffDashboard();
-      showNotification(`Welcome, ${name}!`, 'success');
-    })
-    .catch((error) => {
-      // Handle errors...
-    });
-}
-  
+
   // Use Firebase authentication
   auth.signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
@@ -3025,6 +3015,7 @@ reader.onload = function(e) {
   showNotification('Payroll hours data loaded', 'success');
 };
 reader.readAsText(file);
+}
 
 // Find and REPLACE the existing handleStaffListUpload function (around line 2067-2080)
 // with this updated version:
@@ -3082,21 +3073,39 @@ function extractStaffFromData() {
   if (uploadedData.sales) {
     const salesData = parseCSV(uploadedData.sales);
     salesData.forEach(row => {
-      if (row['ClosedBy']) staffSet.add(row['ClosedBy']);
+      if (row['ClosedBy']) {
+        // Normalize the name format (capitalize first letter of each word)
+        const normalized = row['ClosedBy'].split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        staffSet.add(normalized);
+      }
     });
   }
   
   if (uploadedData.payroll) {
     const payrollData = parseCSV(uploadedData.payroll);
     payrollData.forEach(row => {
-      if (row['Name']) staffSet.add(row['Name']);
+      if (row['Name']) {
+        // Normalize payroll names too
+        const normalized = row['Name'].split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        staffSet.add(normalized);
+      }
     });
   }
   
   if (uploadedData.memberships) {
     const memberData = parseCSV(uploadedData.memberships);
     memberData.forEach(row => {
-      if (row['Sold By']) staffSet.add(row['Sold By']);
+      if (row['Sold By']) {
+        // Normalize membership names too
+        const normalized = row['Sold By'].split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        staffSet.add(normalized);
+      }
     });
   }
   
@@ -3123,10 +3132,6 @@ function extractStaffFromData() {
   console.log('Dynamically found staff:', staffList.length, 'members');
   return staffList;
 }
-console.log('Dynamically found staff:', staffList.length, 'members');
-  return staffList;
-}
-
 // ADD THIS NEW FUNCTION HERE - PUT IT RIGHT HERE BETWEEN THE } AND THE COMMENT
 function populateLoginDropdown() {
   const select = document.getElementById('staffSelect');
@@ -3145,9 +3150,6 @@ function populateLoginDropdown() {
   
   console.log('Login dropdown populated with', staffNames.length, 'staff members');
 }
-
-// Handle bonus structure CSV upload
-function handleBonusUpload(event) {
 
 // Handle bonus structure CSV upload
 function handleBonusUpload(event) {
@@ -3482,68 +3484,43 @@ const periodMemberships = parsedMemberships ?
     return rowDate >= period.start && rowDate <= period.end;  // Changed < to <=
   }) : [];
     
- const periodPayroll = payrollData ? 
-  payrollData.reduce((acc, row) => {
+const periodPayroll = payrollData ?
+  payrollData.filter(row => {
     // First check if this is one of your known staff
     if (!Object.keys(staffData).includes(row['Name'])) {
-      return acc; // Skip unknown staff members
+      return false; // Skip unknown staff members
     }
     
     const rowStart = parseDateConsistent(row['Period Start']);
     const rowEnd = parseDateConsistent(row['Period End']);
     
-    if (!rowStart || !rowEnd) return acc;
+    if (!rowStart || !rowEnd) return false;
     
-    const periodStart = period.start.getTime();
-    const periodEnd = period.end.getTime();
-    const payStart = rowStart.getTime();
-    const payEnd = rowEnd.getTime();
-    
-    // Check if pay period overlaps with the analysis period
-    if (payStart <= periodEnd && payEnd >= periodStart) {
-      // Calculate the actual overlap
-      const overlapStart = Math.max(payStart, periodStart);
-      const overlapEnd = Math.min(payEnd, periodEnd);
-      const payPeriodDuration = payEnd - payStart;
-      const overlapDuration = overlapEnd - overlapStart;
-      
-      // Only include if there's actual overlap and valid duration
-      if (payPeriodDuration > 0 && overlapDuration > 0) {
-        const proportion = overlapDuration / payPeriodDuration;
-        
-        // Handle empty hours gracefully
-        const hourlyHours = row['Hourly Hours'] === '' || row['Hourly Hours'] === null || row['Hourly Hours'] === undefined 
-          ? 0 
-          : parseFloat(row['Hourly Hours']) || 0;
-        
-        acc.push({
-          ...row,
-          // Adjust numeric fields proportionally
-          'Hourly Hours': hourlyHours * proportion,
-          // Keep metadata for transparency
-          '_original_hours': row['Hourly Hours'],
-          '_is_prorated': proportion < 1,
-          '_prorate_ratio': proportion
-        });
-      }
-    }
-    
-    return acc;
-  }, []) : [];
+    // Only include rows where the pay period START date falls within our dashboard period
+    // This ensures each pay period is only counted once in the correct dashboard period
+    return rowStart >= period.start && rowStart <= period.end;
+  }) : [];
     
     const ootInvoices = new Set(periodOOT.map(row => row['Invoice No']));
     
-    // Calculate data for each staff member for this period
-    Object.keys(staffData).forEach(staffName => {
-      const staffHours = periodPayroll
-        .filter(row => row['Name'] === staffName)
-        .reduce((sum, row) => sum + parseFloat(row['Hourly Hours'] || 0), 0);
-      
-      const membershipsSold = periodMemberships
-        .filter(row => row['Sold By'] === staffName)
-        .length;
-      
-      const staffSales = periodSales.filter(row => row['ClosedBy'] === staffName);  // LINE 3657 - KEEP THIS
+Object.keys(staffData).forEach(staffName => {
+const staffHours = periodPayroll
+  .filter(row => row['Name'] && row['Name'].toLowerCase() === staffName.toLowerCase())
+  .reduce((sum, row) => {
+    const hours = row['Hourly Hours'];
+    if (hours === '' || hours === null || hours === undefined) {
+      return sum;
+    }
+    return sum + parseFloat(hours);
+  }, 0);
+  
+  const membershipsSold = periodMemberships
+    .filter(row => row['Sold By'] && row['Sold By'].toLowerCase() === staffName.toLowerCase())
+    .length;
+  
+  const staffSales = periodSales.filter(row => 
+    row['ClosedBy'] && row['ClosedBy'].toLowerCase() === staffName.toLowerCase()
+  );
 
 // Create a Map to track unique guests by invoice number
 const uniqueGuestMap = new Map();

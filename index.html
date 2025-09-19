@@ -458,6 +458,7 @@
     </tr>
   </tbody>
 </table>
+
       </div>
 
 <div>
@@ -2078,44 +2079,69 @@ let parsedMemberships = null;
 let parsedSales = null;
 let parsedOOT = null;
 
-// // Initial staff data - this is what gets modified by period selection
-let staffData = {
-  'Angela McNally': { 
-    enhance: 12, enhanceGoal: 28, member: 4, memberGoal: 6, 
-    rebook: 42, hours: 68, eligibleGuests: 133,
-    totalGuests: 180, prevPerformance: 85, tenureMonths: 14
-  },
-  'Anna Mercadante': { 
-    enhance: 8, enhanceGoal: 25, member: 1, memberGoal: 4, 
-    rebook: 38, hours: 60, eligibleGuests: 100,
-    totalGuests: 150, prevPerformance: 72, tenureMonths: 8
-  },
-  'Madison Jeske': { 
-    enhance: 17, enhanceGoal: 25, member: 5, memberGoal: 3, 
-    rebook: 35, hours: 55, eligibleGuests: 167,
-    totalGuests: 140, prevPerformance: 88, tenureMonths: 12
-  },
-  'Di Fisher': { 
-    enhance: 3, enhanceGoal: 17, member: 0, memberGoal: 3, 
-    rebook: 25, hours: 40, eligibleGuests: 0,
-    totalGuests: 95, prevPerformance: 45, tenureMonths: 3
-  },
-  'Edward Franklin': { 
-    enhance: 11, enhanceGoal: 31, member: 5, memberGoal: 4, 
-    rebook: 35, hours: 72, eligibleGuests: 125,
-    totalGuests: 190, prevPerformance: 78, tenureMonths: 10
-  },
-  'Mariaelena Parra': { 
-    enhance: 2, enhanceGoal: 11, member: 0, memberGoal: 2, 
-    rebook: 15, hours: 28, eligibleGuests: 0,
-    totalGuests: 65, prevPerformance: 40, tenureMonths: 2
-  },
-  'Cheyenne Bringham': { 
-    enhance: 1, enhanceGoal: 11, member: 0, memberGoal: 2, 
-    rebook: 18, hours: 25, eligibleGuests: 0,
-    totalGuests: 58, prevPerformance: 38, tenureMonths: 1
+// Dynamic staff data - will be populated from Firebase or defaults
+let staffData = {};
+
+// Define active staff roster (can be updated via Firebase)
+const DEFAULT_ACTIVE_STAFF = [
+  'Angela McNally',
+  'Anna Mercadante', 
+  'Madison Jeske',
+  'Di Fisher',
+  'Edward Franklin'
+  // Removed Mariaelena Parra and Cheyenne Bringham as they've quit
+];
+// Function to load staff from Firebase (call this after Firebase initializes)
+function loadStaffFromFirebase() {
+  if (typeof database !== 'undefined') {
+    database.ref('dashboard/activeStaff').once('value')
+      .then(snapshot => {
+        const firebaseStaff = snapshot.val();
+        
+        if (firebaseStaff && firebaseStaff.length > 0) {
+          // Clear existing and use Firebase list
+          staffData = {};
+          firebaseStaff.forEach(staffName => {
+            staffData[staffName] = { ...DEFAULT_STAFF_STRUCTURE };
+          });
+          console.log('Staff loaded from Firebase:', Object.keys(staffData));
+          
+          // Recalculate bonuses if needed
+          Object.keys(staffData).forEach(name => {
+            const bonusCalc = calculateBonus(staffData[name]);
+            staffData[name].bonus = bonusCalc.total;
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading staff from Firebase:', error);
+      });
   }
+}
+
+// Default structure for new staff members
+const DEFAULT_STAFF_STRUCTURE = {
+  enhance: 0,
+  enhanceGoal: 10,
+  member: 0,
+  memberGoal: 3,
+  rebook: 0,
+  hours: 0,
+  eligibleGuests: 0,
+  totalGuests: 0,
+  prevPerformance: 0,
+  tenureMonths: 0,
+  bonus: 0
 };
+
+function initializeDefaultStaff() {
+  DEFAULT_ACTIVE_STAFF.forEach(staffName => {
+    staffData[staffName] = { ...DEFAULT_STAFF_STRUCTURE };
+  });
+}
+
+// Call initialization
+initializeDefaultStaff();
 
 // Initialize bonuses for staffData using the new tier system
 Object.keys(staffData).forEach(name => {
@@ -2455,343 +2481,9 @@ function calculateBonus(staffData) {
   };
 }
 
+// Initialize empty periodData - will be populated from CSV files
+let periodData = {};
 
-/// Complete period data - WITHOUT hardcoded bonuses
-const periodData = {
-  current: {
-    'Angela McNally': { enhance: 12, enhanceGoal: 28, member: 4, memberGoal: 6, rebook: 42, hours: 68, eligibleGuests: 133, totalGuests: 180, prevPerformance: 85, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 8, enhanceGoal: 25, member: 1, memberGoal: 4, rebook: 38, hours: 60, eligibleGuests: 100, totalGuests: 150, prevPerformance: 72, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 17, enhanceGoal: 25, member: 5, memberGoal: 3, rebook: 35, hours: 55, eligibleGuests: 167, totalGuests: 140, prevPerformance: 88, tenureMonths: 12 },
-    'Di Fisher': { enhance: 3, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 25, hours: 40, eligibleGuests: 0, totalGuests: 95, prevPerformance: 45, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 11, enhanceGoal: 31, member: 5, memberGoal: 4, rebook: 35, hours: 72, eligibleGuests: 125, totalGuests: 190, prevPerformance: 78, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 2, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 15, hours: 28, eligibleGuests: 0, totalGuests: 65, prevPerformance: 40, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 1, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 18, hours: 25, eligibleGuests: 0, totalGuests: 58, prevPerformance: 38, tenureMonths: 1 }
-  },
-  aug10: {
-    'Angela McNally': { enhance: 9, enhanceGoal: 28, member: 3, memberGoal: 6, rebook: 38, hours: 65, eligibleGuests: 60, totalGuests: 170, prevPerformance: 82, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 6, enhanceGoal: 25, member: 2, memberGoal: 4, rebook: 35, hours: 58, eligibleGuests: 50, totalGuests: 145, prevPerformance: 70, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 14, enhanceGoal: 25, member: 3, memberGoal: 3, rebook: 32, hours: 52, eligibleGuests: 75, totalGuests: 135, prevPerformance: 85, tenureMonths: 12 },
-    'Di Fisher': { enhance: 5, enhanceGoal: 17, member: 1, memberGoal: 3, rebook: 28, hours: 42, eligibleGuests: 20, totalGuests: 100, prevPerformance: 43, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 8, enhanceGoal: 31, member: 4, memberGoal: 4, rebook: 30, hours: 70, eligibleGuests: 80, totalGuests: 185, prevPerformance: 75, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 10, hours: 26, eligibleGuests: 0, totalGuests: 60, prevPerformance: 35, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 2, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 20, hours: 27, eligibleGuests: 0, totalGuests: 62, prevPerformance: 35, tenureMonths: 1 }
-  },
-  jul27: {
-    'Angela McNally': { enhance: 10, enhanceGoal: 28, member: 4, memberGoal: 6, rebook: 40, hours: 70, eligibleGuests: 80, totalGuests: 175, prevPerformance: 80, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 7, enhanceGoal: 25, member: 1, memberGoal: 4, rebook: 33, hours: 55, eligibleGuests: 40, totalGuests: 140, prevPerformance: 68, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 15, enhanceGoal: 25, member: 4, memberGoal: 3, rebook: 34, hours: 58, eligibleGuests: 100, totalGuests: 145, prevPerformance: 83, tenureMonths: 12 },
-    'Di Fisher': { enhance: 4, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 22, hours: 38, eligibleGuests: 0, totalGuests: 85, prevPerformance: 40, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 9, enhanceGoal: 31, member: 3, memberGoal: 4, rebook: 32, hours: 68, eligibleGuests: 60, totalGuests: 180, prevPerformance: 73, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 1, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 12, hours: 30, eligibleGuests: 0, totalGuests: 70, prevPerformance: 32, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 15, hours: 22, eligibleGuests: 0, totalGuests: 50, prevPerformance: 30, tenureMonths: 1 }
-  },
-  jul13: {
-    'Angela McNally': { enhance: 11, enhanceGoal: 28, member: 3, memberGoal: 6, rebook: 36, hours: 66, eligibleGuests: 75, totalGuests: 165, prevPerformance: 78, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 5, enhanceGoal: 25, member: 2, memberGoal: 4, rebook: 30, hours: 50, eligibleGuests: 40, totalGuests: 125, prevPerformance: 65, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 13, enhanceGoal: 25, member: 3, memberGoal: 3, rebook: 31, hours: 54, eligibleGuests: 90, totalGuests: 140, prevPerformance: 80, tenureMonths: 12 },
-    'Di Fisher': { enhance: 3, enhanceGoal: 17, member: 1, memberGoal: 3, rebook: 24, hours: 36, eligibleGuests: 25, totalGuests: 80, prevPerformance: 38, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 10, enhanceGoal: 31, member: 4, memberGoal: 4, rebook: 33, hours: 74, eligibleGuests: 100, totalGuests: 195, prevPerformance: 71, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 8, hours: 24, eligibleGuests: 0, totalGuests: 55, prevPerformance: 30, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 1, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 17, hours: 20, eligibleGuests: 0, totalGuests: 45, prevPerformance: 28, tenureMonths: 1 }
-  },
-  jun29: {
-    'Angela McNally': { enhance: 9, enhanceGoal: 28, member: 3, memberGoal: 6, rebook: 35, hours: 64, eligibleGuests: 70, totalGuests: 160, prevPerformance: 75, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 6, enhanceGoal: 25, member: 1, memberGoal: 4, rebook: 32, hours: 52, eligibleGuests: 35, totalGuests: 130, prevPerformance: 62, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 12, enhanceGoal: 25, member: 3, memberGoal: 3, rebook: 30, hours: 50, eligibleGuests: 85, totalGuests: 135, prevPerformance: 77, tenureMonths: 12 },
-    'Di Fisher': { enhance: 2, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 20, hours: 34, eligibleGuests: 0, totalGuests: 75, prevPerformance: 35, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 8, enhanceGoal: 31, member: 3, memberGoal: 4, rebook: 30, hours: 66, eligibleGuests: 55, totalGuests: 175, prevPerformance: 68, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 7, hours: 22, eligibleGuests: 0, totalGuests: 50, prevPerformance: 28, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 14, hours: 18, eligibleGuests: 0, totalGuests: 40, prevPerformance: 25, tenureMonths: 1 }
-  },
-  jun15: {
-    'Angela McNally': { enhance: 8, enhanceGoal: 28, member: 3, memberGoal: 6, rebook: 33, hours: 62, eligibleGuests: 65, totalGuests: 155, prevPerformance: 72, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 5, enhanceGoal: 25, member: 1, memberGoal: 4, rebook: 30, hours: 50, eligibleGuests: 30, totalGuests: 125, prevPerformance: 60, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 11, enhanceGoal: 25, member: 2, memberGoal: 3, rebook: 28, hours: 48, eligibleGuests: 80, totalGuests: 130, prevPerformance: 74, tenureMonths: 12 },
-    'Di Fisher': { enhance: 2, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 18, hours: 32, eligibleGuests: 0, totalGuests: 70, prevPerformance: 32, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 7, enhanceGoal: 31, member: 3, memberGoal: 4, rebook: 28, hours: 64, eligibleGuests: 50, totalGuests: 170, prevPerformance: 65, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 6, hours: 20, eligibleGuests: 0, totalGuests: 45, prevPerformance: 25, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 12, hours: 16, eligibleGuests: 0, totalGuests: 35, prevPerformance: 22, tenureMonths: 1 }
-  },
-  jun1: {
-    'Angela McNally': { enhance: 7, enhanceGoal: 28, member: 2, memberGoal: 6, rebook: 30, hours: 60, eligibleGuests: 60, totalGuests: 150, prevPerformance: 70, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 4, enhanceGoal: 25, member: 1, memberGoal: 4, rebook: 28, hours: 48, eligibleGuests: 25, totalGuests: 120, prevPerformance: 58, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 10, enhanceGoal: 25, member: 2, memberGoal: 3, rebook: 26, hours: 46, eligibleGuests: 75, totalGuests: 125, prevPerformance: 71, tenureMonths: 12 },
-    'Di Fisher': { enhance: 1, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 16, hours: 30, eligibleGuests: 0, totalGuests: 65, prevPerformance: 30, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 6, enhanceGoal: 31, member: 2, memberGoal: 4, rebook: 26, hours: 62, eligibleGuests: 45, totalGuests: 165, prevPerformance: 62, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 5, hours: 18, eligibleGuests: 0, totalGuests: 40, prevPerformance: 22, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 10, hours: 14, eligibleGuests: 0, totalGuests: 30, prevPerformance: 20, tenureMonths: 1 }
-  },
-  may18: {
-    'Angela McNally': { enhance: 6, enhanceGoal: 28, member: 2, memberGoal: 6, rebook: 28, hours: 58, eligibleGuests: 55, totalGuests: 145, prevPerformance: 68, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 4, enhanceGoal: 25, member: 1, memberGoal: 4, rebook: 26, hours: 46, eligibleGuests: 22, totalGuests: 115, prevPerformance: 55, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 9, enhanceGoal: 25, member: 2, memberGoal: 3, rebook: 24, hours: 44, eligibleGuests: 70, totalGuests: 120, prevPerformance: 68, tenureMonths: 12 },
-    'Di Fisher': { enhance: 1, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 14, hours: 28, eligibleGuests: 0, totalGuests: 60, prevPerformance: 28, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 5, enhanceGoal: 31, member: 2, memberGoal: 4, rebook: 24, hours: 60, eligibleGuests: 40, totalGuests: 160, prevPerformance: 60, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 4, hours: 16, eligibleGuests: 0, totalGuests: 35, prevPerformance: 20, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 8, hours: 12, eligibleGuests: 0, totalGuests: 25, prevPerformance: 18, tenureMonths: 1 }
-  },
-  may4: {
-    'Angela McNally': { enhance: 5, enhanceGoal: 28, member: 2, memberGoal: 6, rebook: 26, hours: 56, eligibleGuests: 50, totalGuests: 140, prevPerformance: 65, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 3, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 24, hours: 44, eligibleGuests: 0, totalGuests: 110, prevPerformance: 52, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 8, enhanceGoal: 25, member: 1, memberGoal: 3, rebook: 22, hours: 42, eligibleGuests: 65, totalGuests: 115, prevPerformance: 65, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 12, hours: 26, eligibleGuests: 0, totalGuests: 55, prevPerformance: 25, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 4, enhanceGoal: 31, member: 1, memberGoal: 4, rebook: 22, hours: 58, eligibleGuests: 35, totalGuests: 155, prevPerformance: 58, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 3, hours: 14, eligibleGuests: 0, totalGuests: 30, prevPerformance: 18, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 6, hours: 10, eligibleGuests: 0, totalGuests: 20, prevPerformance: 15, tenureMonths: 1 }
-  },
-  apr20: {
-    'Angela McNally': { enhance: 4, enhanceGoal: 28, member: 1, memberGoal: 6, rebook: 24, hours: 54, eligibleGuests: 45, totalGuests: 135, prevPerformance: 62, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 3, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 22, hours: 42, eligibleGuests: 0, totalGuests: 105, prevPerformance: 50, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 7, enhanceGoal: 25, member: 1, memberGoal: 3, rebook: 20, hours: 40, eligibleGuests: 60, totalGuests: 110, prevPerformance: 62, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 10, hours: 24, eligibleGuests: 0, totalGuests: 50, prevPerformance: 22, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 3, enhanceGoal: 31, member: 1, memberGoal: 4, rebook: 20, hours: 56, eligibleGuests: 30, totalGuests: 150, prevPerformance: 55, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 2, hours: 12, eligibleGuests: 0, totalGuests: 25, prevPerformance: 15, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 4, hours: 8, eligibleGuests: 0, totalGuests: 15, prevPerformance: 12, tenureMonths: 1 }
-  },
-  apr6: {
-    'Angela McNally': { enhance: 3, enhanceGoal: 28, member: 1, memberGoal: 6, rebook: 22, hours: 52, eligibleGuests: 40, totalGuests: 130, prevPerformance: 60, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 2, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 20, hours: 40, eligibleGuests: 0, totalGuests: 100, prevPerformance: 48, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 6, enhanceGoal: 25, member: 1, memberGoal: 3, rebook: 18, hours: 38, eligibleGuests: 55, totalGuests: 105, prevPerformance: 60, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 8, hours: 22, eligibleGuests: 0, totalGuests: 45, prevPerformance: 20, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 2, enhanceGoal: 31, member: 1, memberGoal: 4, rebook: 18, hours: 54, eligibleGuests: 25, totalGuests: 145, prevPerformance: 52, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 1, hours: 10, eligibleGuests: 0, totalGuests: 20, prevPerformance: 12, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 2, hours: 6, eligibleGuests: 0, totalGuests: 10, prevPerformance: 10, tenureMonths: 1 }
-  },
-  mar23: {
-    'Angela McNally': { enhance: 2, enhanceGoal: 28, member: 1, memberGoal: 6, rebook: 20, hours: 50, eligibleGuests: 35, totalGuests: 125, prevPerformance: 58, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 2, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 18, hours: 38, eligibleGuests: 0, totalGuests: 95, prevPerformance: 45, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 5, enhanceGoal: 25, member: 0, memberGoal: 3, rebook: 16, hours: 36, eligibleGuests: 0, totalGuests: 100, prevPerformance: 58, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 6, hours: 20, eligibleGuests: 0, totalGuests: 40, prevPerformance: 18, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 1, enhanceGoal: 31, member: 0, memberGoal: 4, rebook: 16, hours: 52, eligibleGuests: 0, totalGuests: 140, prevPerformance: 50, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 8, eligibleGuests: 0, totalGuests: 15, prevPerformance: 10, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 4, eligibleGuests: 0, totalGuests: 5, prevPerformance: 8, tenureMonths: 1 }
-  },
-  mar9: {
-    'Angela McNally': { enhance: 2, enhanceGoal: 28, member: 0, memberGoal: 6, rebook: 18, hours: 48, eligibleGuests: 0, totalGuests: 120, prevPerformance: 55, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 1, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 16, hours: 36, eligibleGuests: 0, totalGuests: 90, prevPerformance: 42, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 4, enhanceGoal: 25, member: 0, memberGoal: 3, rebook: 14, hours: 34, eligibleGuests: 0, totalGuests: 95, prevPerformance: 55, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 4, hours: 18, eligibleGuests: 0, totalGuests: 35, prevPerformance: 15, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 1, enhanceGoal: 31, member: 0, memberGoal: 4, rebook: 14, hours: 50, eligibleGuests: 0, totalGuests: 135, prevPerformance: 48, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 6, eligibleGuests: 0, totalGuests: 10, prevPerformance: 8, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 2, eligibleGuests: 0, totalGuests: 2, prevPerformance: 5, tenureMonths: 1 }
-  },
-  feb23: {
-    'Angela McNally': { enhance: 1, enhanceGoal: 28, member: 0, memberGoal: 6, rebook: 16, hours: 46, eligibleGuests: 0, totalGuests: 115, prevPerformance: 52, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 1, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 14, hours: 34, eligibleGuests: 0, totalGuests: 85, prevPerformance: 40, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 3, enhanceGoal: 25, member: 0, memberGoal: 3, rebook: 12, hours: 32, eligibleGuests: 0, totalGuests: 90, prevPerformance: 52, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 2, hours: 16, eligibleGuests: 0, totalGuests: 30, prevPerformance: 12, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 0, enhanceGoal: 31, member: 0, memberGoal: 4, rebook: 12, hours: 48, eligibleGuests: 0, totalGuests: 130, prevPerformance: 45, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 4, eligibleGuests: 0, totalGuests: 5, prevPerformance: 5, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 0, eligibleGuests: 0, totalGuests: 0, prevPerformance: 0, tenureMonths: 1 }
-  },
-  feb9: {
-    'Angela McNally': { enhance: 1, enhanceGoal: 28, member: 0, memberGoal: 6, rebook: 14, hours: 44, eligibleGuests: 0, totalGuests: 110, prevPerformance: 50, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 0, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 12, hours: 32, eligibleGuests: 0, totalGuests: 80, prevPerformance: 38, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 2, enhanceGoal: 25, member: 0, memberGoal: 3, rebook: 10, hours: 30, eligibleGuests: 0, totalGuests: 85, prevPerformance: 50, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 0, hours: 14, eligibleGuests: 0, totalGuests: 25, prevPerformance: 10, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 0, enhanceGoal: 31, member: 0, memberGoal: 4, rebook: 10, hours: 46, eligibleGuests: 0, totalGuests: 125, prevPerformance: 42, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 2, eligibleGuests: 0, totalGuests: 2, prevPerformance: 2, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 0, eligibleGuests: 0, totalGuests: 0, prevPerformance: 0, tenureMonths: 1 }
-  },
-  jan26: {
-    'Angela McNally': { enhance: 0, enhanceGoal: 28, member: 0, memberGoal: 6, rebook: 12, hours: 42, eligibleGuests: 0, totalGuests: 105, prevPerformance: 48, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 0, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 10, hours: 30, eligibleGuests: 0, totalGuests: 75, prevPerformance: 35, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 1, enhanceGoal: 25, member: 0, memberGoal: 3, rebook: 8, hours: 28, eligibleGuests: 0, totalGuests: 80, prevPerformance: 48, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 0, hours: 12, eligibleGuests: 0, totalGuests: 20, prevPerformance: 8, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 0, enhanceGoal: 31, member: 0, memberGoal: 4, rebook: 8, hours: 44, eligibleGuests: 0, totalGuests: 120, prevPerformance: 40, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 0, eligibleGuests: 0, totalGuests: 0, prevPerformance: 0, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 0, eligibleGuests: 0, totalGuests: 0, prevPerformance: 0, tenureMonths: 1 }
-  },
-  jan12: {
-    'Angela McNally': { enhance: 0, enhanceGoal: 28, member: 0, memberGoal: 6, rebook: 10, hours: 40, eligibleGuests: 0, totalGuests: 100, prevPerformance: 45, tenureMonths: 14 },
-    'Anna Mercadante': { enhance: 0, enhanceGoal: 25, member: 0, memberGoal: 4, rebook: 8, hours: 28, eligibleGuests: 0, totalGuests: 70, prevPerformance: 32, tenureMonths: 8 },
-    'Madison Jeske': { enhance: 0, enhanceGoal: 25, member: 0, memberGoal: 3, rebook: 6, hours: 26, eligibleGuests: 0, totalGuests: 75, prevPerformance: 45, tenureMonths: 12 },
-    'Di Fisher': { enhance: 0, enhanceGoal: 17, member: 0, memberGoal: 3, rebook: 0, hours: 10, eligibleGuests: 0, totalGuests: 15, prevPerformance: 5, tenureMonths: 3 },
-    'Edward Franklin': { enhance: 0, enhanceGoal: 31, member: 0, memberGoal: 4, rebook: 6, hours: 42, eligibleGuests: 0, totalGuests: 115, prevPerformance: 38, tenureMonths: 10 },
-    'Mariaelena Parra': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 0, eligibleGuests: 0, totalGuests: 0, prevPerformance: 0, tenureMonths: 2 },
-    'Cheyenne Bringham': { enhance: 0, enhanceGoal: 11, member: 0, memberGoal: 2, rebook: 0, hours: 0, eligibleGuests: 0, totalGuests: 0, prevPerformance: 0, tenureMonths: 1 }
-  }
-};
-
-// Function to initialize bonuses for all periods
-function initializePeriodBonuses() {
-  Object.keys(periodData).forEach(period => {
-    Object.keys(periodData[period]).forEach(name => {
-      const staffData = periodData[period][name];
-      const bonusCalc = calculateBonus(staffData);
-      periodData[period][name].bonus = bonusCalc.total;
-    });
-  });
-}
-
-// Call this function after periodData is defined
-initializePeriodBonuses();
-
-// Performance Trend Chart Function - Enhanced Version
-function generateTrendChart(staffName) {
-  const periods = ['jan12', 'jan26', 'feb9', 'feb23', 'mar9', 'mar23', 'apr6', 'apr20', 'may4', 'may18', 'jun1', 'jun15', 'jun29', 'jul13', 'jul27', 'aug10', 'current'];
-  const periodLabels = ['Jan 12', 'Jan 26', 'Feb 9', 'Feb 23', 'Mar 9', 'Mar 23', 'Apr 6', 'Apr 20', 'May 4', 'May 18', 'Jun 1', 'Jun 15', 'Jun 29', 'Jul 13', 'Jul 27', 'Aug 10', 'Current'];
-  
-  const scores = periods.map(p => {
-    if (periodData[p] && periodData[p][staffName]) {
-      return calculatePerformanceScore(periodData[p][staffName]);
-    }
-    return 0;
-  });
-  
-  const maxScore = Math.max(...scores, 100);
-  const chartWidth = 800;
-  const chartHeight = 300;
-  const padding = 40;
-  const usableWidth = chartWidth - (padding * 2);
-  const usableHeight = chartHeight - (padding * 2);
-  
-  // Create path for area fill
-  const areaPoints = scores.map((score, i) => {
-    const x = (i * (usableWidth / (scores.length - 1))) + padding;
-    const y = chartHeight - padding - ((score / maxScore) * usableHeight);
-    return `${x},${y}`;
-  }).join(' ');
-  
-  const areaPath = `${areaPoints} ${chartWidth - padding},${chartHeight - padding} ${padding},${chartHeight - padding}`;
-  
-  const chartHTML = `
-    <div class="performance-chart-container" style="background: linear-gradient(135deg, #374151 0%, #4b5563 100%); padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); margin: 20px 0;">
-      <h3 style="color: white; margin-bottom: 5px; font-size: 24px; font-weight: 700;">📈 Performance Trend</h3>
-      <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin-bottom: 20px;">Your journey over the last 17 pay periods</p>
-      
-      <svg width="100%" height="${chartHeight}" viewBox="0 0 ${chartWidth} ${chartHeight}" style="display: block;">
-        <!-- Gradient definitions -->
-        <defs>
-          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#4facfe;stop-opacity:0.8" />
-            <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:0.1" />
-          </linearGradient>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:#4facfe" />
-            <stop offset="100%" style="stop-color:#00f2fe" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        
-        <!-- Grid lines -->
-        ${[0, 25, 50, 75, 100].map(val => {
-          const y = chartHeight - padding - ((val / maxScore) * usableHeight);
-          return `
-            <line x1="${padding}" y1="${y}" x2="${chartWidth - padding}" y2="${y}" 
-                  stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-            <text x="${padding - 10}" y="${y + 5}" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="end">${val}%</text>
-          `;
-        }).join('')}
-        
-        <!-- X-axis labels -->
-        ${scores.map((score, i) => {
-          const x = (i * (usableWidth / (scores.length - 1))) + padding;
-          if (i % 2 === 0 || i === scores.length - 1) {
-            return `
-              <text x="${x}" y="${chartHeight - 15}" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle">
-                ${periodLabels[i]}
-              </text>
-            `;
-          }
-          return '';
-        }).join('')}
-        
-        <!-- Area fill -->
-        <polygon points="${areaPath}" fill="url(#areaGradient)" opacity="0.6">
-          <animate attributeName="opacity" from="0" to="0.6" dur="1s" fill="freeze"/>
-        </polygon>
-        
-        <!-- The line -->
-        <polyline points="${areaPoints}" 
-                  fill="none" 
-                  stroke="url(#lineGradient)" 
-                  stroke-width="4"
-                  stroke-linejoin="round"
-                  stroke-linecap="round"
-                  filter="url(#glow)">
-          <animate attributeName="stroke-dasharray" from="0 1000" to="1000 0" dur="2s" fill="freeze"/>
-        </polyline>
-        
-        <!-- Data points -->
-        ${scores.map((score, i) => {
-          const x = (i * (usableWidth / (scores.length - 1))) + padding;
-          const y = chartHeight - padding - ((score / maxScore) * usableHeight);
-          const isCurrentPeriod = i === scores.length - 1;
-          const delay = i * 0.1;
-          return `
-            <g>
-              <circle cx="${x}" cy="${y}" r="${isCurrentPeriod ? 8 : 5}" 
-                      fill="${isCurrentPeriod ? '#00ff88' : 'white'}" 
-                      stroke="${isCurrentPeriod ? 'white' : 'none'}" 
-                      stroke-width="${isCurrentPeriod ? 3 : 0}"
-                      opacity="0">
-                <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="${delay}s" fill="freeze"/>
-                <animate attributeName="r" from="0" to="${isCurrentPeriod ? 8 : 5}" dur="0.5s" begin="${delay}s" fill="freeze"/>
-              </circle>
-              ${isCurrentPeriod ? `
-                <circle cx="${x}" cy="${y}" r="12" fill="none" stroke="#00ff88" stroke-width="2" opacity="0.5">
-                  <animate attributeName="r" from="8" to="20" dur="2s" repeatCount="indefinite"/>
-                  <animate attributeName="opacity" from="0.8" to="0" dur="2s" repeatCount="indefinite"/>
-                </circle>
-                <text x="${x}" y="${y - 15}" font-size="14" font-weight="bold" fill="#00ff88" text-anchor="middle">
-                  ${score}%
-                </text>
-              ` : `
-                <title>${periodLabels[i]}: ${score}%</title>
-              `}
-            </g>
-          `;
-        }).join('')}
-        
-        <!-- Trend indicator -->
-        ${(() => {
-          const recentScores = scores.slice(-3);
-          const trend = recentScores[2] - recentScores[0];
-          const trendColor = trend > 0 ? '#00ff88' : trend < 0 ? '#ff4757' : '#ffd93d';
-          const trendSymbol = trend > 0 ? '↑' : trend < 0 ? '↓' : '→';
-          return `
-            <g transform="translate(${chartWidth - 100}, 30)">
-              <rect x="-10" y="-20" width="90" height="35" rx="8" fill="rgba(0,0,0,0.3)"/>
-              <text x="35" y="0" font-size="16" font-weight="bold" fill="${trendColor}" text-anchor="middle">
-                ${trendSymbol} ${Math.abs(trend).toFixed(1)}%
-              </text>
-              <text x="35" y="-8" font-size="10" fill="rgba(255,255,255,0.6)" text-anchor="middle">TREND</text>
-            </g>
-          `;
-        })()}
-      </svg>
-      
-      <!-- Stats below chart -->
-      <div style="display: flex; justify-content: space-around; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
-        <div style="text-align: center;">
-          <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 5px;">LOWEST</div>
-          <div style="color: white; font-size: 20px; font-weight: bold;">${Math.min(...scores)}%</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 5px;">AVERAGE</div>
-          <div style="color: white; font-size: 20px; font-weight: bold;">${Math.round(scores.reduce((a,b) => a+b, 0) / scores.length)}%</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 5px;">HIGHEST</div>
-          <div style="color: white; font-size: 20px; font-weight: bold;">${Math.max(...scores)}%</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 5px;">CURRENT</div>
-          <div style="color: #00ff88; font-size: 20px; font-weight: bold;">${scores[scores.length - 1]}%</div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  return chartHTML;
-}
 
 // CSV parser function
 function parseCSV(text) {
@@ -3061,12 +2753,6 @@ const totalBonus = bonusCalc.total;
   document.getElementById('enhanceBonus').textContent = `${enhanceBonus.toFixed(2)}`;
   document.getElementById('membershipBonus').textContent = `${membershipBonus.toFixed(2)}`;
   document.getElementById('performanceBonus').textContent = `${performanceBonus.toFixed(2)}`;
-
-// Add the trend chart
-  const chartContainer = document.getElementById('performanceTrendChart');
-  if (chartContainer) {
-    chartContainer.innerHTML = generateTrendChart(currentUser);
-  }
   
   generatePerformanceTips(data, actualConv, convGoal);
 }
@@ -3583,11 +3269,28 @@ function processFilteredData(period) {
     
     const staffSales = filteredSales.filter(row => row['ClosedBy'] === staffName);
     
-    const eligibleGuests = staffSales.filter(row => {
-      const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
-      const isOOT = ootInvoices.has(row['Invoice No']);
-      return !isExistingMember && !isOOT;
-    }).length;
+    // Create a Map to track unique guests by invoice number
+const uniqueGuestMap = new Map();
+
+staffSales.forEach(row => {
+  const invoiceNo = row['Invoice No'];
+  if (!invoiceNo) return;
+  
+  // Determine if this guest is eligible
+  const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
+  const isOOT = ootInvoices.has(invoiceNo);
+  
+  // Store unique guest info (only first occurrence)
+  if (!uniqueGuestMap.has(invoiceNo)) {
+    uniqueGuestMap.set(invoiceNo, {
+      isEligible: !isExistingMember && !isOOT
+    });
+  }
+});
+
+// Count unique eligible guests
+const eligibleGuests = Array.from(uniqueGuestMap.values())
+  .filter(guest => guest.isEligible).length;
     
   // Count only Enhancement sales (not Massage)
       const enhancements = staffSales.filter(row => {
@@ -3785,15 +3488,32 @@ const periodMemberships = parsedMemberships ?
         .filter(row => row['Sold By'] === staffName)
         .length;
       
-      const staffSales = periodSales.filter(row => row['ClosedBy'] === staffName);
-      
-      const eligibleGuests = staffSales.filter(row => {
-  const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
-  const isOOT = ootInvoices.has(row['Invoice No']);
-  return !isExistingMember && !isOOT;
-}).length;
+      const staffSales = periodSales.filter(row => row['ClosedBy'] === staffName);  // LINE 3657 - KEEP THIS
 
-// Count only Enhancement sales (not Massage) - includes ALL guests (local, OOT, members, non-members)
+// Create a Map to track unique guests by invoice number
+const uniqueGuestMap = new Map();
+
+staffSales.forEach(row => {
+  const invoiceNo = row['Invoice No'];
+  if (!invoiceNo) return;
+  
+  // Determine if this guest is eligible
+  const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
+  const isOOT = ootInvoices.has(invoiceNo);
+  
+  // Store unique guest info (only first occurrence)
+  if (!uniqueGuestMap.has(invoiceNo)) {
+    uniqueGuestMap.set(invoiceNo, {
+      isEligible: !isExistingMember && !isOOT
+    });
+  }
+});
+
+// Count unique eligible guests
+const eligibleGuests = Array.from(uniqueGuestMap.values())
+  .filter(guest => guest.isEligible).length;
+
+// Count only Enhancement sales (not Massage) - includes ALL guests           // LINE 3665 - KEEP THIS
 const enhancementRows = staffSales.filter(row => {
   const category = (row['Category'] || '').trim().toLowerCase();
   // Use startsWith to catch "enhancement", "enhancements", etc.

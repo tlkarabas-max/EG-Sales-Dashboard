@@ -3209,6 +3209,13 @@ window.APPROVED_STAFF = [
 
 console.log('SCRIPT START - JavaScript is running');
 console.log('Approved staff loaded:', window.APPROVED_STAFF.length, 'members');
+// DATA VALIDATOR OBJECT
+const DataValidator = {
+  showValidationPreview: function() {
+    console.log('Validation preview triggered');
+    processAllData();
+  }
+};
 
 // ============================================
 // FIREBASE DATABASE INTEGRATION

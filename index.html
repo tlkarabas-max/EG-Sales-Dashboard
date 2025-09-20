@@ -2794,9 +2794,9 @@ function switchTab(tab) {
 function updateComparisonTable(userData) {
   const allStaff = Object.values(staffData);
   
- const avgConv = allStaff.reduce((sum, s) => {
-  return sum + (s.totalGuests > 0 ? (s.eligibleGuests / s.totalGuests * 100) : 0);
-}, 0) / allStaff.length;
+  const avgConv = allStaff.reduce((sum, s) => {
+    return sum + (s.eligibleGuests > 0 ? (s.member / s.eligibleGuests * 100) : 0);
+  }, 0) / allStaff.length;
   
   const avgMemPerHour = allStaff.reduce((sum, s) => sum + (s.member / s.hours), 0) / allStaff.length;
   const avgEnhPerHour = allStaff.reduce((sum, s) => sum + (s.enhance / s.hours), 0) / allStaff.length;

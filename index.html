@@ -3082,28 +3082,32 @@ function handleStaffListUpload(event) {
   reader.readAsText(file);
 }
 
-// Also update the updateStaffDropdown function to ensure it works correctly:
+// Updated updateStaffDropdown function with approved staff filtering:
 function updateStaffDropdown(staffList) {
   const dropdown = document.getElementById('staffSelect');
   if (!dropdown) return;
   
+  // Define your actual staff members - easy to maintain
+  const APPROVED_STAFF = [
+    'Angela McNally',
+    'Anna Mercadante',
+    'Madison Jeske',
+    'Di Fisher',
+    'Edward Franklin',
+    'Jessica Watts',
+    'Nicole Rice'
+  ];
+  
   dropdown.innerHTML = '<option value="">Select your name...</option>';
   
-  // Also update the staff emails mapping
   window.dynamicStaffEmails = {};
   
-  staffList.forEach(staff => {
-    // Check for Active status if the column exists, otherwise include all
-    if (!staff.Status || staff.Status === 'Active') {
-      dropdown.innerHTML += `<option value="${staff.Name}">${staff.Name}</option>`;
-      
-      // Map emails if they exist
-      if (staff.Email) {
-        window.dynamicStaffEmails[staff.Name] = staff.Email;
-      }
-    }
-  });
-}
+  // If no CSV is uploaded, use the approved list directly
+  if (!staffList || staffList.length === 0) {
+    APPROVED_STAFF.forEach(name => {
+      dropdown.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+    console.log(`Staff dropdown populated with ${APPROVED_STAFF.length}
   
   // Also update the staff emails mapping
   window.dynamicStaffEmails = {};
@@ -3696,6 +3700,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Staff list auto-loaded from saved settings');
   }
   
+  // ... rest of your DOMContentLoaded code ...
+  
   // Debug appointment input
   const appointmentInput = document.getElementById('appointmentFile');
   if (appointmentInput) {
@@ -3730,6 +3736,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <div class="quick-actions" id="quickActionsPanel" style="display: none;">
+  <div class="quick-actions-header" onclick="toggleQuickActions()">
     <span>⚡</span>
   </div>
   <div class="quick-actions-buttons">

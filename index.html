@@ -183,9 +183,8 @@
           <p>Experience Guides - Access your personal dashboard</p>
           <div class="login-form">
             <select id="staffSelect">
-  <option value="">Select your name...</option>
-  <!-- Options will be populated dynamically from CSV data -->
-</select>
+              <option value="">Select your name...</option>
+            </select>
             <input type="password" id="staffPassword" placeholder="Enter your Staff ID">
             <button class="login-btn staff-login-btn" onclick="loginStaff()">Login as Staff</button>
           </div>
@@ -2128,7 +2127,6 @@ const DEFAULT_STAFF_STRUCTURE = {
   bonus: 0
 };
 
-// Initialize with default staff list
 function initializeDefaultStaff() {
   DEFAULT_ACTIVE_STAFF.forEach(staffName => {
     staffData[staffName] = { ...DEFAULT_STAFF_STRUCTURE };
@@ -2329,6 +2327,7 @@ function removeStaffMember() {
 
 // Load staff registry from Firebase on admin login
 function loadStaffRegistry() {
+    return;  // SKIP THIS FUNCTION FOR TESTING
     if (typeof database === 'undefined') return;
     
     database.ref('dashboard/staffRegistry').once('value')
@@ -2403,9 +2402,9 @@ function parseDateConsistent(dateStr) {
 // ========================================
 
 
-function calculateTrueConversionRate(membershipsSold, eligibleGuests) {
-  const trueConversionRate = eligibleGuests > 0 ? 
-    (membershipsSold / eligibleGuests * 100) : 0;
+function calculateTrueConversionRate(membershipsSold, eligibleGuests, totalGuests) {
+  const trueConversionRate = totalGuests > 0 ? 
+    (eligibleGuests / totalGuests * 100) : 0;
   
   return {
     eligibleProspects: eligibleGuests,
@@ -2541,8 +2540,8 @@ function calculatePerformanceScore(data) {
   }
   
   const convGoal = getConversionGoal(data.tenureMonths);
-  const actualConv = data.eligibleGuests > 0 ? 
-    (data.member / data.eligibleGuests * 100) : 0;
+  const actualConv = data.totalGuests > 0 ? 
+  (data.eligibleGuests / data.totalGuests * 100) : 0;
   
   const convScore = Math.min((actualConv / convGoal) * 40, 40);
   const enhancePerHour = data.enhance / data.hours;
@@ -2552,6 +2551,24 @@ function calculatePerformanceScore(data) {
   
   return Math.round(convScore + enhanceScore + rebookScore + productivityScore);
 }
+// ADD THE NEW FUNCTION HERE:
+function populateStaffDropdown() {
+    const select = document.getElementById('staffSelect');
+    
+    // Clear existing options except the first one
+    select.innerHTML = '<option value="">Select your name...</option>';
+    
+    // Add an option for each staff member from CSV
+    Object.keys(staffData).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+    });
+    
+    console.log('Dropdown populated with', Object.keys(staffData).length, 'staff members');
+}
+    // ... your existing loginStaff code ...
 function loginStaff() {
   const name = document.getElementById('staffSelect').value;
   const password = document.getElementById('staffPassword').value;
@@ -2561,11 +2578,21 @@ function loginStaff() {
     return;
   }
   
-  // Convert name to email format
-  const emailName = name.toLowerCase().replace(' ', '.');
-  const email = `${emailName}@salesdashboard.com`;
+  // First try dynamic list from CSV, fallback to hardcoded
+  const email = window.dynamicStaffEmails?.[name] || 
+    {
+      'Angela McNally': 'angela.mcnally@salesdashboard.com',
+      'Madison Jeske': 'madison.jeske@salesdashboard.com',
+      'Di Fisher': 'di.fisher@salesdashboard.com',
+      'Jessica Watts': 'jessica.watts@salesdashboard.com',
+      'Nicole Rice': 'nicole.rice@salesdashboard.com'
+    }[name];
   
-
+  if (!email) {
+    showNotification('Staff member not configured', 'error');
+    return;
+  }
+  
   // Use Firebase authentication
   auth.signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
@@ -2632,9 +2659,9 @@ function showStaffDashboard() {
   document.getElementById('hoursWorked').textContent = `${data.hours} hrs`;
 
 const convGoal = getConversionGoal(data.tenureMonths); 
-const actualConv = data.eligibleGuests > 0 ? 
-  (data.member / data.eligibleGuests * 100) : 0;
-const adjustedEnhanceGoal = calculateFairEnhancementGoal(data.hours, data.tenureMonths);
+const actualConv = data.totalGuests > 0 ? 
+  (data.eligibleGuests / data.totalGuests * 100) : 0;
+  const adjustedEnhanceGoal = calculateFairEnhancementGoal(data.hours, data.tenureMonths);
 
 document.getElementById('enhanceValue').textContent = data.enhance;
 document.getElementById('enhanceAdjusted').textContent = adjustedEnhanceGoal;
@@ -2767,9 +2794,9 @@ function switchTab(tab) {
 function updateComparisonTable(userData) {
   const allStaff = Object.values(staffData);
   
-  const avgConv = allStaff.reduce((sum, s) => {
-    return sum + (s.eligibleGuests > 0 ? (s.member / s.eligibleGuests * 100) : 0);
-  }, 0) / allStaff.length;
+ const avgConv = allStaff.reduce((sum, s) => {
+  return sum + (s.totalGuests > 0 ? (s.eligibleGuests / s.totalGuests * 100) : 0);
+}, 0) / allStaff.length;
   
   const avgMemPerHour = allStaff.reduce((sum, s) => sum + (s.member / s.hours), 0) / allStaff.length;
   const avgEnhPerHour = allStaff.reduce((sum, s) => sum + (s.enhance / s.hours), 0) / allStaff.length;
@@ -2780,7 +2807,7 @@ function updateComparisonTable(userData) {
   const topEnhPerHour = Math.max(...allStaff.map(s => s.enhance / s.hours));
   const topRebook = Math.max(...allStaff.map(s => s.rebook));
   
-  const yourConv = userData.eligibleGuests > 0 ? (userData.member / userData.eligibleGuests * 100) : 0;
+  const yourConv = userData.totalGuests > 0 ? (userData.eligibleGuests / userData.totalGuests * 100) : 0;
   document.getElementById('yourConv').textContent = `${yourConv.toFixed(1)}%`;
   document.getElementById('avgConv').textContent = `${avgConv.toFixed(1)}%`;
   document.getElementById('topConv').textContent = `${topConv.toFixed(1)}%`;
@@ -2830,6 +2857,11 @@ document.getElementById('performanceTips').innerHTML = tips.map(tip => `<li>${ti
 }  
 
 function showAdminDashboard() {
+  // ADD THESE DEBUG LINES HERE
+  console.log('ShowAdminDashboard called');
+  console.log('Current staffData:', JSON.stringify(staffData));
+  console.log('Angela data:', staffData['Angela McNally']);
+  
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('staffView').classList.add('hidden');
   document.getElementById('adminView').classList.remove('hidden');
@@ -2864,8 +2896,8 @@ function showAdminDashboard() {
   let tableHTML = '';
   Object.entries(staffData).forEach(([name, data]) => {
     const performance = calculatePerformanceScore(data);
-    const actualConv = data.eligibleGuests > 0 ? 
-      (data.member / data.eligibleGuests * 100) : 0;
+    const actualConv = data.totalGuests > 0 ? 
+  (data.eligibleGuests / data.totalGuests * 100) : 0;
     const convGoal = getConversionGoal(data.tenureMonths);
     const adjustedEnhanceGoal = calculateFairEnhancementGoal(data.hours, data.tenureMonths);
     
@@ -3015,7 +3047,6 @@ reader.onload = function(e) {
   showNotification('Payroll hours data loaded', 'success');
 };
 reader.readAsText(file);
-}
 
 // Find and REPLACE the existing handleStaffListUpload function (around line 2067-2080)
 // with this updated version:
@@ -3060,95 +3091,27 @@ function updateStaffDropdown(staffList) {
   
   // Also update the staff emails mapping
   window.dynamicStaffEmails = {};
+  
+  staffList.forEach(staff => {
+    // Check for Active status if the column exists, otherwise include all
+    if (!staff.Status || staff.Status === 'Active') {
+      dropdown.innerHTML += `<option value="${staff.Name}">${staff.Name}</option>`;
+      
+      // Map emails if they exist
+      if (staff.Email) {
+        window.dynamicStaffEmails[staff.Name] = staff.Email;
+      }
+    }
+  });
+}
+  
+  // Also update the staff emails mapping
+  window.dynamicStaffEmails = {};
   staffList.forEach(staff => {
     if (staff.Status === 'Active') {
       window.dynamicStaffEmails[staff.Name] = staff.Email;
     }
   });
-}
-// ADD THE NEW FUNCTION HERE
-function extractStaffFromData() {
-  const staffSet = new Set();
-  
-  if (uploadedData.sales) {
-    const salesData = parseCSV(uploadedData.sales);
-    salesData.forEach(row => {
-      if (row['ClosedBy']) {
-        // Normalize the name format (capitalize first letter of each word)
-        const normalized = row['ClosedBy'].split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-        staffSet.add(normalized);
-      }
-    });
-  }
-  
-  if (uploadedData.payroll) {
-    const payrollData = parseCSV(uploadedData.payroll);
-    payrollData.forEach(row => {
-      if (row['Name']) {
-        // Normalize payroll names too
-        const normalized = row['Name'].split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-        staffSet.add(normalized);
-      }
-    });
-  }
-  
-  if (uploadedData.memberships) {
-    const memberData = parseCSV(uploadedData.memberships);
-    memberData.forEach(row => {
-      if (row['Sold By']) {
-        // Normalize membership names too
-        const normalized = row['Sold By'].split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-        staffSet.add(normalized);
-      }
-    });
-  }
-  
-  const staffList = Array.from(staffSet).filter(name => name && name.trim());
-  
-  staffList.forEach(staffName => {
-    if (!staffData[staffName]) {
-      staffData[staffName] = {
-        enhance: 0,
-        enhanceGoal: 10,
-        member: 0,
-        memberGoal: 3,
-        rebook: 0,
-        hours: 0,
-        eligibleGuests: 0,
-        totalGuests: 0,
-        prevPerformance: 0,
-        tenureMonths: 6,
-        bonus: 0
-      };
-    }
-  });
-  
-  console.log('Dynamically found staff:', staffList.length, 'members');
-  return staffList;
-}
-// ADD THIS NEW FUNCTION HERE - PUT IT RIGHT HERE BETWEEN THE } AND THE COMMENT
-function populateLoginDropdown() {
-  const select = document.getElementById('staffSelect');
-  if (!select) return;
-  
-  select.innerHTML = '<option value="">Select your name...</option>';
-  
-  const staffNames = Object.keys(staffData);
-  
-  staffNames.sort().forEach(name => {
-    const option = document.createElement('option');
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  });
-  
-  console.log('Login dropdown populated with', staffNames.length, 'staff members');
 }
 
 // Handle bonus structure CSV upload
@@ -3399,10 +3362,6 @@ function processAllData() {
     return;
   }
   
-  // ADD THIS LINE HERE
-  const dynamicStaff = extractStaffFromData();
-  populateLoginDropdown();
-  
   // Clear previous periodData to prevent memory leak
   Object.keys(periodData).forEach(period => {
     periodData[period] = {};
@@ -3414,7 +3373,6 @@ function processAllData() {
   parsedOOT = uploadedData.oot ? parseCSV(uploadedData.oot) : null;
   
   const validations = [
-    // ... rest of your code continues
     {
       data: parsedSales,
       columns: ['Sale Date', 'ClosedBy', 'Invoice No', 'Category', 'Member'],
@@ -3438,26 +3396,27 @@ function processAllData() {
       console.error(`Validation failed for ${validation.type}`);
     }
   });
-// Define period ranges for processing
-const periodRanges = {
-  current: { start: new Date('2025-01-01'), end: new Date('2025-01-31') },  // January 2025 data
-  jan12: { start: new Date('2025-01-12'), end: new Date('2025-01-25') },
-  jan26: { start: new Date('2025-01-26'), end: new Date('2025-02-08') },
-  feb9: { start: new Date('2025-02-09'), end: new Date('2025-02-22') },
-  feb23: { start: new Date('2025-02-23'), end: new Date('2025-03-08') },
-  mar9: { start: new Date('2025-03-09'), end: new Date('2025-03-22') },
-  mar23: { start: new Date('2025-03-23'), end: new Date('2025-04-05') },
-  apr6: { start: new Date('2025-04-06'), end: new Date('2025-04-19') },
-  apr20: { start: new Date('2025-04-20'), end: new Date('2025-05-03') },
-  may4: { start: new Date('2025-05-04'), end: new Date('2025-05-17') },
-  may18: { start: new Date('2025-05-18'), end: new Date('2025-05-31') },
-  jun1: { start: new Date('2025-06-01'), end: new Date('2025-06-14') },
-  jun15: { start: new Date('2025-06-15'), end: new Date('2025-06-28') },
-  jun29: { start: new Date('2025-06-29'), end: new Date('2025-07-12') },
-  jul13: { start: new Date('2025-07-13'), end: new Date('2025-07-26') },
-  jul27: { start: new Date('2025-07-27'), end: new Date('2025-08-09') },
-  aug10: { start: new Date('2025-08-10'), end: new Date('2025-08-23') }
-};
+
+  // Define period ranges for processing
+  const periodRanges = {
+    current: { start: new Date('2025-08-24'), end: new Date('2025-09-06') },
+    aug10: { start: new Date('2025-08-10'), end: new Date('2025-08-23') },
+    jul27: { start: new Date('2025-07-27'), end: new Date('2025-08-09') },
+    jul13: { start: new Date('2025-07-13'), end: new Date('2025-07-26') },
+    jun29: { start: new Date('2025-06-29'), end: new Date('2025-07-12') },
+    jun15: { start: new Date('2025-06-15'), end: new Date('2025-06-28') },
+    jun1: { start: new Date('2025-06-01'), end: new Date('2025-06-14') },
+    may18: { start: new Date('2025-05-18'), end: new Date('2025-05-31') },
+    may4: { start: new Date('2025-05-04'), end: new Date('2025-05-17') },
+    apr20: { start: new Date('2025-04-20'), end: new Date('2025-05-03') },
+    apr6: { start: new Date('2025-04-06'), end: new Date('2025-04-19') },
+    mar23: { start: new Date('2025-03-23'), end: new Date('2025-04-05') },
+    mar9: { start: new Date('2025-03-09'), end: new Date('2025-03-22') },
+    feb23: { start: new Date('2025-02-23'), end: new Date('2025-03-08') },
+    feb9: { start: new Date('2025-02-09'), end: new Date('2025-02-22') },
+    jan26: { start: new Date('2025-01-26'), end: new Date('2025-02-08') },
+    jan12: { start: new Date('2025-01-12'), end: new Date('2025-01-25') }
+  };
 
   // Process data for each period
   Object.keys(periodRanges).forEach(periodKey => {
@@ -3484,43 +3443,68 @@ const periodMemberships = parsedMemberships ?
     return rowDate >= period.start && rowDate <= period.end;  // Changed < to <=
   }) : [];
     
-const periodPayroll = payrollData ?
-  payrollData.filter(row => {
+ const periodPayroll = payrollData ? 
+  payrollData.reduce((acc, row) => {
     // First check if this is one of your known staff
     if (!Object.keys(staffData).includes(row['Name'])) {
-      return false; // Skip unknown staff members
+      return acc; // Skip unknown staff members
     }
     
     const rowStart = parseDateConsistent(row['Period Start']);
     const rowEnd = parseDateConsistent(row['Period End']);
     
-    if (!rowStart || !rowEnd) return false;
+    if (!rowStart || !rowEnd) return acc;
     
-    // Only include rows where the pay period START date falls within our dashboard period
-    // This ensures each pay period is only counted once in the correct dashboard period
-    return rowStart >= period.start && rowStart <= period.end;
-  }) : [];
+    const periodStart = period.start.getTime();
+    const periodEnd = period.end.getTime();
+    const payStart = rowStart.getTime();
+    const payEnd = rowEnd.getTime();
+    
+    // Check if pay period overlaps with the analysis period
+    if (payStart <= periodEnd && payEnd >= periodStart) {
+      // Calculate the actual overlap
+      const overlapStart = Math.max(payStart, periodStart);
+      const overlapEnd = Math.min(payEnd, periodEnd);
+      const payPeriodDuration = payEnd - payStart;
+      const overlapDuration = overlapEnd - overlapStart;
+      
+      // Only include if there's actual overlap and valid duration
+      if (payPeriodDuration > 0 && overlapDuration > 0) {
+        const proportion = overlapDuration / payPeriodDuration;
+        
+        // Handle empty hours gracefully
+        const hourlyHours = row['Hourly Hours'] === '' || row['Hourly Hours'] === null || row['Hourly Hours'] === undefined 
+          ? 0 
+          : parseFloat(row['Hourly Hours']) || 0;
+        
+        acc.push({
+          ...row,
+          // Adjust numeric fields proportionally
+          'Hourly Hours': hourlyHours * proportion,
+          // Keep metadata for transparency
+          '_original_hours': row['Hourly Hours'],
+          '_is_prorated': proportion < 1,
+          '_prorate_ratio': proportion
+        });
+      }
+    }
+    
+    return acc;
+  }, []) : [];
     
     const ootInvoices = new Set(periodOOT.map(row => row['Invoice No']));
     
-Object.keys(staffData).forEach(staffName => {
-const staffHours = periodPayroll
-  .filter(row => row['Name'] && row['Name'].toLowerCase() === staffName.toLowerCase())
-  .reduce((sum, row) => {
-    const hours = row['Hourly Hours'];
-    if (hours === '' || hours === null || hours === undefined) {
-      return sum;
-    }
-    return sum + parseFloat(hours);
-  }, 0);
-  
-  const membershipsSold = periodMemberships
-    .filter(row => row['Sold By'] && row['Sold By'].toLowerCase() === staffName.toLowerCase())
-    .length;
-  
-  const staffSales = periodSales.filter(row => 
-    row['ClosedBy'] && row['ClosedBy'].toLowerCase() === staffName.toLowerCase()
-  );
+    // Calculate data for each staff member for this period
+    Object.keys(staffData).forEach(staffName => {
+      const staffHours = periodPayroll
+        .filter(row => row['Name'] === staffName)
+        .reduce((sum, row) => sum + parseFloat(row['Hourly Hours'] || 0), 0);
+      
+      const membershipsSold = periodMemberships
+        .filter(row => row['Sold By'] === staffName)
+        .length;
+      
+      const staffSales = periodSales.filter(row => row['ClosedBy'] === staffName);  // LINE 3657 - KEEP THIS
 
 // Create a Map to track unique guests by invoice number
 const uniqueGuestMap = new Map();
@@ -3584,18 +3568,57 @@ periodStaffData[staffName].bonus = bonusCalc.total;
     periodData[periodKey] = periodStaffData;
   });
   
- // Update current staffData with current period
-if (periodData.current && Object.keys(periodData.current).length > 0) {
-  staffData = { ...periodData.current };
-  console.log('Updated staffData with current period data');
-}
+  // Update current staffData with current period only if it has valid data
+  if (periodData.current && Object.keys(periodData.current).length > 0) {
+    // Check if the processed data has valid values before overwriting
+    let hasValidData = false;
+    Object.values(periodData.current).forEach(staff => {
+      if (staff.hours > 0 || staff.enhance > 0) {
+        hasValidData = true;
+      }
+    });
+    
+    if (hasValidData) {
+    } else {
+      console.log('Warning: Processed data appears to be empty, keeping original data');
+    }
+  }
   
   showAdminDashboard();
   showNotification('All periods processed from CSV data!', 'success');
+  
+console.log('ProcessAllData finished');
+console.log('Total staff processed:', Object.keys(staffData).length);
+console.log('Staff members:', Object.keys(staffData));
+
+// Show a sample of the data structure
+const firstStaff = Object.keys(staffData)[0];
+if (firstStaff) {
+    console.log(`Sample data for ${firstStaff}:`, staffData[firstStaff]);
+    
+    // Also show the conversion rate to verify it's calculated correctly
+    if (staffData[firstStaff].conversionRate) {
+        console.log(`${firstStaff}'s conversion rate:`, staffData[firstStaff].conversionRate);
+    }
 }
+
+// Check if any conversion rates are over 100%
+const invalidRates = Object.entries(staffData).filter(([name, data]) => 
+    data.conversionRate > 100
+);
+if (invalidRates.length > 0) {
+    console.warn('⚠️ Staff with conversion rates > 100%:', invalidRates);
+}
+
+// Populate the dropdown with staff from CSV
+populateStaffDropdown();
+
+}  // <-- THIS CLOSING BRACE ENDS processAllData
+
 function logout() {
   currentUser = null;
   currentPeriod = 'current';
+  // ... rest of logout function;
   document.getElementById('loginSection').classList.remove('hidden');
   document.getElementById('staffView').classList.add('hidden');
   document.getElementById('adminView').classList.add('hidden');
@@ -3621,7 +3644,8 @@ function logout() {
 function exportToCSV() {
   const rows = [['Name', 'Hours', 'Enhancements', 'Memberships', 'Conversion%', 'Rebook%', 'Bonus']];
   Object.entries(staffData).forEach(([name, data]) => {
-    const conv = data.eligibleGuests > 0 ? (data.member / data.eligibleGuests * 100).toFixed(1) : '0';
+    const actualConv = data.totalGuests > 0 ? 
+  (data.eligibleGuests / data.totalGuests * 100) : 0;
     const bonusCalc = calculateBonus(data);
     rows.push([name, data.hours, data.enhance, data.member, conv, data.rebook, bonusCalc.total.toFixed(2)]);
   });
@@ -3668,7 +3692,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load saved staff list if exists
   const savedStaffList = localStorage.getItem('staffList');
   if (savedStaffList) {
-    updateStaffDropdown(JSON.parse(savedStaffList));
+    // updateStaffDropdown(JSON.parse(savedStaffList));  // COMMENT THIS OUT
     console.log('Staff list auto-loaded from saved settings');
   }
   
@@ -3706,7 +3730,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <div class="quick-actions" id="quickActionsPanel" style="display: none;">
-  <div class="quick-actions-header" onclick="toggleQuickActions()">
     <span>⚡</span>
   </div>
   <div class="quick-actions-buttons">
@@ -3934,10 +3957,9 @@ const dataTypes = ['appointments', 'memberships', 'sales', 'oot', 'payroll', 'bo
         }
         
         loadedCount++;
-  if (loadedCount === dataTypes.length) {
-  updateUploadTimestamps();
-  populateLoginDropdown();  // ADD THIS LINE
-  showNotification('All data loaded from cloud', 'success');
+        if (loadedCount === dataTypes.length) {
+          updateUploadTimestamps();
+          showNotification('All data loaded from cloud', 'success');
           
           // Auto-process if all required data is present
           if (uploadedData.sales || uploadedData.appointments) {

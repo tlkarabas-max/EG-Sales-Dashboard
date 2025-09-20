@@ -2367,13 +2367,31 @@ function updateStaffDropdown(staffList) {
   
   dropdown.innerHTML = '<option value="">Select your name...</option>';
   
-  // Also update the staff emails mapping
   window.dynamicStaffEmails = {};
+  
+  // If no CSV is uploaded, use the approved list directly
+  if (!staffList || staffList.length === 0) {
+    window.APPROVED_STAFF.forEach(name => {
+      dropdown.innerHTML += `<option value="${name}">${name}</option>`;
+    });
+    console.log(`Staff dropdown populated with ${window.APPROVED_STAFF.length} default staff members`);
+    return;
+  }
+  
+  // If CSV exists, filter it through approved list
+  let addedCount = 0;
   staffList.forEach(staff => {
-    if (staff.Status === 'Active') {
-      window.dynamicStaffEmails[staff.Name] = staff.Email;
+    if (window.APPROVED_STAFF.includes(staff.Name) && (!staff.Status || staff.Status === 'Active')) {
+      dropdown.innerHTML += `<option value="${staff.Name}">${staff.Name}</option>`;
+      addedCount++;
+      
+      if (staff.Email) {
+        window.dynamicStaffEmails[staff.Name] = staff.Email;
+      }
     }
   });
+  
+  console.log(`Staff dropdown updated with ${addedCount} approved staff members (filtered from ${staffList.length} total)`);
 }
 // ADD THE NEW FUNCTION HERE
 function extractStaffFromData() {
@@ -2420,8 +2438,9 @@ function extractStaffFromData() {
   
   const staffList = Array.from(staffSet).filter(name => name && name.trim());
   
+  // ONLY add approved staff to staffData
   staffList.forEach(staffName => {
-    if (!staffData[staffName]) {
+    if (window.APPROVED_STAFF.includes(staffName) && !staffData[staffName]) {
       staffData[staffName] = {
         enhance: 0,
         enhanceGoal: 10,

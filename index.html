@@ -3692,11 +3692,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load saved staff list if exists
   const savedStaffList = localStorage.getItem('staffList');
   if (savedStaffList) {
-    // updateStaffDropdown(JSON.parse(savedStaffList));  // COMMENT THIS OUT
+    updateStaffDropdown(JSON.parse(savedStaffList));
     console.log('Staff list auto-loaded from saved settings');
   }
-  
-  // ... rest of your DOMContentLoaded code ...
   
   // Debug appointment input
   const appointmentInput = document.getElementById('appointmentFile');

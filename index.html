@@ -2330,6 +2330,13 @@ const periodRanges = {
           });
 
           const enhancements = enhancementRows.length;
+          
+          console.log('Debug staff:', staffName, {
+    hours: staffHours,
+    enhancements,
+    membershipsSold,
+    staffSales: staffSales.length
+  });
 
           const normalizedName = normalizeName(staffName);
           const originalData = periodData[periodKey] && periodData[periodKey][normalizedName] ? 

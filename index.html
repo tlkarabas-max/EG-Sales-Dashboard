@@ -2256,14 +2256,14 @@ const periodRanges = {
   oct5: { start: new Date('2025-10-05'), end: new Date('2025-10-18') },
   oct19: { start: new Date('2025-10-19'), end: new Date('2025-11-01') },
   nov2: { start: new Date('2025-11-02'), end: new Date('2025-11-15') },
-  nov16: { start: new Date('2025-11-16'), end: new Date('2025-11-29') },
   nov30: { start: new Date('2025-11-30'), end: new Date('2025-12-13') },
   dec14: { start: new Date('2025-12-14'), end: new Date('2025-12-27') },
   dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10') }
 };
-      Object.keys(periodRanges).forEach(periodKey => {
+
+Object.keys(periodRanges).forEach(periodKey => {
   const period = periodRanges[periodKey];
-  const periodStaffData = {}; // <-- Place this here
+  const periodStaffData = {}; // <-- Correct placement
 
   const periodSales = parsedSales ? 
     parsedSales.filter(row => {
@@ -2271,13 +2271,14 @@ const periodRanges = {
       return rowDate >= period.start && rowDate <= period.end;
     }) : [];
 
-});
+  const periodOOT = parsedOOT ? 
+    parsedOOT.filter(row => {
+      const rowDate = parseDateConsistent(row['Sales Date']);
+      return rowDate >= period.start && rowDate <= period.end;
+    }) : [];
 
-        const periodOOT = parsedOOT ? 
-          parsedOOT.filter(row => {
-            const rowDate = parseDateConsistent(row['Sales Date']);
-            return rowDate >= period.start && rowDate <= period.end;
-          }) : [];
+  // ...rest of your code for this period...
+});
 
         const periodMemberships = parsedMemberships ? 
           parsedMemberships.filter(row => {

@@ -1648,10 +1648,12 @@ function removeStaffMember() {
     showNotification('Staff member removed successfully.', 'success');
 }
     
+   function removeUser(name) {
     if (!confirm(`Are you sure you want to remove ${name}? This will:\n- Remove them from all dashboards\n- Mark them as inactive in the system\n- Preserve their historical data`)) {
         return;
     }
-    
+    // continue with removal logic...
+} 
     // Mark as inactive in Firebase rather than delete (preserves history)
     if (typeof database !== 'undefined' && currentUser === 'admin') {
         const staffRef = database.ref(`dashboard/staffRegistry/${name}`);

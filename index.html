@@ -839,12 +839,13 @@
     };
 
     // Helper functions
-    function normalizeName(name) {
-      if (!name) return '';
-      return name.split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-    }
+  function normalizeName(name) {
+  if (!name) return '';
+  name = name.trim().replace(/\s+/g, ' ');
+  return name.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
 
     function showNotification(message, type = 'info') {
       const notification = document.createElement('div');
@@ -2219,11 +2220,22 @@ function extractStaffFromData() {
           type: 'Memberships'
         },
         {
-          data: parsedOOT,
-          columns: ['Sales Date', 'Invoice No'],
-          type: 'OOT'
-        }
+  data: parsedOOT,
+  columns: ['Sales Date', 'Invoice No', 'Type'], // Added Type column
+  type: 'OOT'
+}
       ];
+
+// Add debug to see what's happening
+console.log('Starting data processing...');
+console.log('Staff in system:', Object.keys(staffData));
+console.log('Sales data rows:', parsedSales ? parsedSales.length : 0);
+console.log('Membership data rows:', parsedMemberships ? parsedMemberships.length : 0);
+console.log('OOT data rows:', parsedOOT ? parsedOOT.length : 0);
+if (parsedSales && parsedSales.length > 0) {
+  console.log('Sample sale:', parsedSales[0]);
+  console.log('Sample ClosedBy values:', [...new Set(parsedSales.slice(0,20).map(r => r['ClosedBy']))]);
+}
       
       validations.forEach(validation => {
         if (validation.data && !validateCSVColumns(validation.data, validation.columns, validation.type)) {
@@ -2270,11 +2282,13 @@ Object.keys(periodRanges).forEach(periodKey => {
       return rowDate >= period.start && rowDate <= period.end;
     }) : [];
 
-  const periodOOT = parsedOOT ? 
-    parsedOOT.filter(row => {
-      const rowDate = parseDateConsistent(row['Sales Date']);
-      return rowDate >= period.start && rowDate <= period.end;
-    }) : [];
+ const periodOOT = parsedOOT ? 
+  parsedOOT.filter(row => {
+    const rowDate = parseDateConsistent(row['Sales Date']);
+    // Filter for OOT type guests in this period
+    return rowDate >= period.start && rowDate <= period.end && 
+           row['Type'] && row['Type'].toLowerCase().includes('oot'); // or whatever identifies OOT
+  }) : [];
 
   const periodMemberships = parsedMemberships ? 
     parsedMemberships.filter(row => {

@@ -6,6 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Performance Dashboard - Enhanced</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; }
@@ -214,25 +215,34 @@
     <p>Your Performance for <span id="staffPeriodDisplay">Current Period</span></p>
     
     <label for="staffPeriodSelector">Select Period:</label>
-    <select id="staffPeriodSelector" onchange="changeStaffPeriod()" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
-      <option value="current">Aug 24 - Sep 6, 2025 (Current)</option>
-      <option value="aug10">Aug 10-23, 2025</option>
-      <option value="jul27">Jul 27 - Aug 9, 2025</option>
-      <option value="jul13">Jul 13-26, 2025</option>
-      <option value="jun29">Jun 29 - Jul 12, 2025</option>
-      <option value="jun15">Jun 15-28, 2025</option>
-      <option value="jun1">Jun 1-14, 2025</option>
-      <option value="may18">May 18-31, 2025</option>
-      <option value="may4">May 4-17, 2025</option>
-      <option value="apr20">Apr 20 - May 3, 2025</option>
-      <option value="apr6">Apr 6-19, 2025</option>
-      <option value="mar23">Mar 23 - Apr 5, 2025</option>
-      <option value="mar9">Mar 9-22, 2025</option>
-      <option value="feb23">Feb 23 - Mar 8, 2025</option>
-      <option value="feb9">Feb 9-22, 2025</option>
-      <option value="jan26">Jan 26 - Feb 8, 2025</option>
-      <option value="jan12">Jan 12-25, 2025</option>
-    </select>
+<select id="staffPeriodSelector" onchange="changeStaffPeriod()" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+  <option value="current">Aug 24 - Sep 6, 2025 (Current)</option>
+  <option value="aug10">Aug 10-23, 2025</option>
+  <option value="jul27">Jul 27 - Aug 9, 2025</option>
+  <option value="jul13">Jul 13-26, 2025</option>
+  <option value="jun29">Jun 29 - Jul 12, 2025</option>
+  <option value="jun15">Jun 15-28, 2025</option>
+  <option value="jun1">Jun 1-14, 2025</option>
+  <option value="may18">May 18-31, 2025</option>
+  <option value="may4">May 4-17, 2025</option>
+  <option value="apr20">Apr 20 - May 3, 2025</option>
+  <option value="apr6">Apr 6-19, 2025</option>
+  <option value="mar23">Mar 23 - Apr 5, 2025</option>
+  <option value="mar9">Mar 9-22, 2025</option>
+  <option value="feb23">Feb 23 - Mar 8, 2025</option>
+  <option value="feb9">Feb 9-22, 2025</option>
+  <option value="jan26">Jan 26 - Feb 8, 2025</option>
+  <option value="jan12">Jan 12-25, 2025</option>
+  <option value="sep7">Sep 7-20, 2025 (Future)</option>
+  <option value="sep21">Sep 21 - Oct 4, 2025 (Future)</option>
+  <option value="oct5">Oct 5-18, 2025 (Future)</option>
+  <option value="oct19">Oct 19 - Nov 1, 2025 (Future)</option>
+  <option value="nov2">Nov 2-15, 2025 (Future)</option>
+  <option value="nov16">Nov 16-29, 2025 (Future)</option>
+  <option value="nov30">Nov 30 - Dec 13, 2025 (Future)</option>
+  <option value="dec14">Dec 14-27, 2025 (Future)</option>
+  <option value="dec28">Dec 28, 2025 - Jan 10, 2026 (Future)</option>
+</select>
   </div>
 </div>
 <div class="tips-section">
@@ -1568,7 +1578,7 @@ function addStaffMember() {
         }
         if (!exists) {
             const newOption = document.createElement('option');
-            newOption.value = name;
+           newOption.value = normalizedName;
             newOption.textContent = name;
             loginSelect.appendChild(newOption);
         }
@@ -1590,14 +1600,52 @@ function addStaffMember() {
     }
 }
 
-// Remove staff member
 function removeStaffMember() {
-    const name = document.getElementById('quickRemoveSelect').value;
-    
-    if (!name) {
+    const select = document.getElementById('quickRemoveSelect');
+    const name = select.value;
+    const normalizedName = normalizeName(name);
+
+    if (!normalizedName) {
         showNotification('Please select a staff member to remove', 'error');
         return;
     }
+
+    if (!confirm(`Are you sure you want to remove ${name}? This will:\n- Remove them from all dashboards\n- Mark them as inactive in the system\n- Preserve their historical data`)) {
+        return;
+    }
+
+    // Remove from staffData
+    if (staffData.hasOwnProperty(normalizedName)) {
+        delete staffData[normalizedName];
+    } else {
+        showNotification('Staff member not found.', 'error');
+        return;
+    }
+
+    // Remove from dropdown
+    for (let i = 0; i < select.options.length; i++) {
+        if (normalizeName(select.options[i].value) === normalizedName) {
+            select.remove(i);
+            break;
+        }
+    }
+
+    // Mark as inactive in Firebase (preserves history)
+    if (typeof database !== 'undefined' && currentUser === 'admin') {
+        const staffRef = database.ref(`dashboard/staffRegistry/${normalizedName}`);
+        staffRef.update({
+            active: false,
+            deactivatedDate: new Date().toISOString(),
+            deactivatedBy: currentUser
+        }).then(() => {
+            console.log('Staff marked as inactive in Firebase');
+        }).catch(error => {
+            console.error('Error updating Firebase:', error);
+        });
+    }
+
+    showNotification('Staff member removed successfully.', 'success');
+}
     
     if (!confirm(`Are you sure you want to remove ${name}? This will:\n- Remove them from all dashboards\n- Mark them as inactive in the system\n- Preserve their historical data`)) {
         return;
@@ -1775,23 +1823,13 @@ function calculateBonus(staffData) {
 let periodData = {};
 
 
-// CSV parser function
+// CSV parser function using PapaParse
 function parseCSV(text) {
-  const lines = text.split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
-  const data = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim()) {
-      const values = lines[i].split(',');
-      const row = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] ? values[index].trim() : '';
-      });
-      data.push(row);
-    }
-  }
-  return data;
+  const result = Papa.parse(text, {
+    header: true,
+    skipEmptyLines: true
+  });
+  return result.data;
 }
 
 // Calculate conversion rate goal based on tenure
@@ -2224,81 +2262,191 @@ function changePeriod() {
 
 // CSV Upload handlers
 function handleAppointmentUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    uploadedData.appointments = e.target.result;
-    uploadTimestamps.appointments = new Date().toISOString();  // ADD THIS
-     saveDataToFirebase('appointments', e.target.result);
-    updateUploadTimestamps();  // ADD THIS
-    showNotification('Appointment data loaded', 'success');
-  };
-  reader.readAsText(file);
+    const file = event.target.files[0];
+    if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+            parsedData = parseCSV(fileContent); // Replace with your actual CSV parser
+            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                showNotification('File is empty or could not be parsed.', 'error');
+                return;
+            }
+        } catch (err) {
+            showNotification('Error parsing file: ' + (err.message || err), 'error');
+            return;
+        }
+
+        // If parsing succeeded, process the data
+        processAppointmentData(parsedData); // Replace with your actual processing function
+    };
+
+    reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+    };
+
+    reader.readAsText(file);
 }
 
 function handleMembershipUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    uploadedData.memberships = e.target.result;
-    uploadTimestamps.memberships = new Date().toISOString();  // ADD THIS
-     saveDataToFirebase('memberships', e.target.result);
-    updateUploadTimestamps();  // ADD THIS
-    showNotification('Membership data loaded', 'success');
-  };
-  reader.readAsText(file);
+    const file = event.target.files[0];
+    if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+            parsedData = parseCSV(fileContent); // Replace with your actual CSV parser
+            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                showNotification('File is empty or could not be parsed.', 'error');
+                return;
+            }
+        } catch (err) {
+            showNotification('Error parsing file: ' + (err.message || err), 'error');
+            return;
+        }
+
+        // If parsing succeeded, update data and Firebase
+        uploadedData.memberships = parsedData;
+        uploadTimestamps.memberships = new Date().toISOString();
+        saveDataToFirebase('memberships', parsedData);
+        updateUploadTimestamps();
+        showNotification('Membership data loaded', 'success');
+    };
+
+    reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+    };
+
+    reader.readAsText(file);
 }
 
 function handleSalesUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    uploadedData.sales = e.target.result;
-    uploadTimestamps.sales = new Date().toISOString(); 
-    saveDataToFirebase('sales', e.target.result); // ADD THIS
-    updateUploadTimestamps();  // ADD THIS
-    showNotification('Sales data loaded', 'success');
-  };
-  reader.readAsText(file);
+    const file = event.target.files[0];
+    if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+            parsedData = parseCSV(fileContent); // Replace with your actual CSV parser
+            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                showNotification('File is empty or could not be parsed.', 'error');
+                return;
+            }
+        } catch (err) {
+            showNotification('Error parsing file: ' + (err.message || err), 'error');
+            return;
+        }
+
+        // If parsing succeeded, update data and Firebase
+        uploadedData.sales = parsedData;
+        uploadTimestamps.sales = new Date().toISOString();
+        saveDataToFirebase('sales', parsedData);
+        updateUploadTimestamps();
+        showNotification('Sales data loaded', 'success');
+    };
+
+    reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+    };
+
+    reader.readAsText(file);
 }
 
 function handleOOTUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    uploadedData.oot = e.target.result;
-    uploadTimestamps.oot = new Date().toISOString();  // ADD THIS
-    saveDataToFirebase('oot', e.target.result);
-    updateUploadTimestamps();  // ADD THIS
-    showNotification('OOT data loaded', 'success');
-  };
-  reader.readAsText(file);
-}
+    const file = event.target.files[0];
+    if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+    }
 
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+            parsedData = parseCSV(fileContent); // Replace with your actual CSV parser
+            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                showNotification('File is empty or could not be parsed.', 'error');
+                return;
+            }
+        } catch (err) {
+            showNotification('Error parsing file: ' + (err.message || err), 'error');
+            return;
+        }
+
+        // If parsing succeeded, update data and Firebase
+        uploadedData.oot = parsedData;
+        uploadTimestamps.oot = new Date().toISOString();
+        saveDataToFirebase('oot', parsedData);
+        updateUploadTimestamps();
+        showNotification('OOT data loaded', 'success');
+    };
+
+    reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+    };
+
+    reader.readAsText(file);
+}
 function handlePayrollUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-   const staffList = window.dashboardData?.staffList || [];
-  
-  const reader = new FileReader();
-reader.onload = function(e) {
-  uploadedData.payroll = e.target.result;
-  uploadTimestamps.payroll = new Date().toISOString();
-  saveDataToFirebase('payroll', e.target.result);  // THIS IS MISSING!
-  updateUploadTimestamps();
-  payrollData = parseCSV(e.target.result);
-  extractPayPeriods();
-  showNotification('Payroll hours data loaded', 'success');
-};
-reader.readAsText(file);
+    const file = event.target.files[0];
+    if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+    }
+    const staffList = window.dashboardData?.staffList || [];
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+            parsedData = parseCSV(fileContent); // Replace with your actual CSV parser
+            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                showNotification('File is empty or could not be parsed.', 'error');
+                return;
+            }
+        } catch (err) {
+            showNotification('Error parsing file: ' + (err.message || err), 'error');
+            return;
+        }
+
+        // If parsing succeeded, update data and Firebase
+        uploadedData.payroll = parsedData;
+        uploadTimestamps.payroll = new Date().toISOString();
+        saveDataToFirebase('payroll', parsedData);
+        updateUploadTimestamps();
+        payrollData = parsedData;
+        extractPayPeriods();
+        showNotification('Payroll hours data loaded', 'success');
+    };
+
+    reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+    };
+
+    reader.readAsText(file);
 }
 
 // Find and REPLACE the existing handleStaffListUpload function (around line 2067-2080)
@@ -2440,14 +2588,14 @@ function populateLoginDropdown() {
   
   select.innerHTML = '<option value="">Select your name...</option>';
   
-  const staffNames.sort().forEach(name => {
+Object.keys(staffData).sort().forEach(name => {
   const option = document.createElement('option');
   option.value = name;
-  option.textContent = staffData[name].originalName || name; // Show original if available
+  option.textContent = staffData[name].originalName || name;
   select.appendChild(option);
 });
   
-  console.log('Login dropdown populated with', staffNames.length, 'staff members');
+console.log('Login dropdown populated with', Object.keys(staffData).length, 'staff members');
 }
 
 // Handle bonus structure CSV upload
@@ -3190,7 +3338,7 @@ const firebaseConfig = {
   authDomain: "salesdashboard-e28a1.firebaseapp.com",
   databaseURL: "https://salesdashboard-e28a1-default-rtdb.firebaseio.com",
   projectId: "salesdashboard-e28a1",
-  storageBucket: "salesdashboard-e28a1.firebasestorage.app",
+  storageBucket: "salesdashboard-e28a1.appspot.com",
   messagingSenderId: "497089067660",
   appId: "1:497089067660:web:92cee755dbbad692b5d9a9",
   measurementId: "G-9MZZ5DV3FW"

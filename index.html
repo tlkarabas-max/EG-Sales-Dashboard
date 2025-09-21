@@ -1270,9 +1270,24 @@ const periodOptions = [
       const normalizedName = normalizeName(currentUser);
       const data = staffData[normalizedName] || { ...DEFAULT_STAFF_STRUCTURE };
       
-      document.getElementById('staffName').textContent = currentUser;
-      document.getElementById('staffTitle').textContent = `Performance Dashboard - ${currentUser}`;
-      document.getElementById('hoursWorked').textContent = `${data.hours} hrs`;
+   document.getElementById('staffName').textContent = currentUser;
+document.getElementById('staffTitle').textContent = `Performance Dashboard - ${currentUser}`;
+const hoursDisplay = data.isEstimated ? 
+  `~${data.hours} hrs (est)` : 
+  `${data.hours} hrs`;
+document.getElementById('hoursWorked').textContent = hoursDisplay;
+
+// Add a note if data is estimated
+if (data.isEstimated) {
+  const welcomeSection = document.querySelector('.welcome-section');
+  if (welcomeSection && !document.getElementById('estimatedDataNote')) {
+    const note = document.createElement('div');
+    note.id = 'estimatedDataNote';
+    note.style.cssText = 'background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 14px;';
+    note.innerHTML = '⚠️ Note: Hours are estimated pending payroll data. Sales metrics are current.';
+    welcomeSection.appendChild(note);
+  }
+}
       
       const convGoal = getConversionGoal(data.tenureMonths);
       const actualConv = data.eligibleGuests > 0 ? 
@@ -2289,18 +2304,43 @@ const periodRanges = {
         
         const ootInvoices = new Set(periodOOT.map(row => row['Invoice No']));
         
-        Object.keys(staffData).forEach(staffName => {
-          const staffHours = periodPayroll
-            .filter(row => row['Name'] && normalizeName(row['Name']) === normalizeName(staffName))
-            .reduce((sum, row) => {
-              const hours = row['Hourly Hours'];
-              if (hours === '' || hours === null || hours === undefined) {
-                return sum;
-              }
-              return sum + parseFloat(hours);
-            }, 0);
-          
-          const membershipsSold = periodMemberships
+Object.keys(staffData).forEach(staffName => {
+  // Calculate staff hours with fallback for current period
+  const staffHours = periodPayroll
+    .filter(row => row['Name'] && normalizeName(row['Name']) === normalizeName(staffName))
+    .reduce((sum, row) => {
+      const hours = row['Hourly Hours'];
+      if (hours === '' || hours === null || hours === undefined) {
+        return sum;
+      }
+      return sum + parseFloat(hours);
+    }, 0);
+
+  // For current period without payroll, estimate hours based on activity
+  let estimatedHours = staffHours;
+  if (staffHours === 0 && periodKey === 'current') {
+    // Count unique days with activity
+    const uniqueDays = new Set();
+    periodSales.filter(row => 
+      row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizeName(staffName)
+    ).forEach(sale => {
+      const saleDate = parseDateConsistent(sale['Sale Date']);
+      if (saleDate) {
+        uniqueDays.add(saleDate.toDateString());
+      }
+    });
+    
+    // Estimate 8 hours per active day (adjustable)
+    estimatedHours = uniqueDays.size * 8;
+    
+    // Or use previous period average if available
+    const prevPeriodData = periodData['sep7'] && periodData['sep7'][normalizedName];
+    if (prevPeriodData && prevPeriodData.hours > 0 && estimatedHours === 0) {
+      estimatedHours = prevPeriodData.hours; // Use previous period as estimate
+    }
+  }
+  
+  const membershipsSold = periodMemberships
             .filter(row => row['Sold By'] && normalizeName(row['Sold By']) === normalizeName(staffName))
             .length;
           
@@ -2345,21 +2385,22 @@ const periodRanges = {
           const originalData = periodData[periodKey] && periodData[periodKey][normalizedName] ? 
             periodData[periodKey][normalizedName] : staffData[normalizedName];
 
-          periodStaffData[normalizedName] = {
-            enhance: enhancements,
-            enhanceGoal: calculateFairEnhancementGoal(
-              staffHours > 0 ? staffHours : originalData.hours,
-              originalData.tenureMonths || 6
-            ),
-            member: membershipsSold,
-            memberGoal: originalData.memberGoal || 2,
-            rebook: originalData.rebook || 0,
-            hours: staffHours > 0 ? Math.round(staffHours) : originalData.hours,
-            eligibleGuests: eligibleGuests,
-            totalGuests: staffSales.length,
-            prevPerformance: originalData.prevPerformance || 0,
-            tenureMonths: originalData.tenureMonths || 6
-          };
+       periodStaffData[normalizedName] = {
+  enhance: enhancements,
+  enhanceGoal: calculateFairEnhancementGoal(
+    estimatedHours > 0 ? estimatedHours : (originalData.hours || 40),
+    originalData.tenureMonths || 6
+  ),
+  member: membershipsSold,
+  memberGoal: originalData.memberGoal || 2,
+  rebook: originalData.rebook || 0,
+  hours: estimatedHours > 0 ? Math.round(estimatedHours) : (originalData.hours || 40),
+  eligibleGuests: eligibleGuests,
+  totalGuests: staffSales.length,
+  prevPerformance: originalData.prevPerformance || 0,
+  tenureMonths: originalData.tenureMonths || 6,
+  isEstimated: staffHours === 0 && estimatedHours > 0
+};
           
           const bonusCalc = calculateBonus(periodStaffData[normalizedName]);
           periodStaffData[normalizedName].bonus = bonusCalc.total;

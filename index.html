@@ -214,37 +214,67 @@
     <h2>Welcome, <span id="staffName">Staff Member</span>!</h2>
     <p>Your Performance for <span id="staffPeriodDisplay">Current Period</span></p>
     
-    <label for="staffPeriodSelector">Select Period:</label>
-<select id="staffPeriodSelector" onchange="changeStaffPeriod()" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
-  <option value="current">Aug 24 - Sep 6, 2025 (Current)</option>
-  <option value="aug10">Aug 10-23, 2025</option>
-  <option value="jul27">Jul 27 - Aug 9, 2025</option>
-  <option value="jul13">Jul 13-26, 2025</option>
-  <option value="jun29">Jun 29 - Jul 12, 2025</option>
-  <option value="jun15">Jun 15-28, 2025</option>
-  <option value="jun1">Jun 1-14, 2025</option>
-  <option value="may18">May 18-31, 2025</option>
-  <option value="may4">May 4-17, 2025</option>
-  <option value="apr20">Apr 20 - May 3, 2025</option>
-  <option value="apr6">Apr 6-19, 2025</option>
-  <option value="mar23">Mar 23 - Apr 5, 2025</option>
-  <option value="mar9">Mar 9-22, 2025</option>
-  <option value="feb23">Feb 23 - Mar 8, 2025</option>
-  <option value="feb9">Feb 9-22, 2025</option>
-  <option value="jan26">Jan 26 - Feb 8, 2025</option>
-  <option value="jan12">Jan 12-25, 2025</option>
-  <option value="sep7">Sep 7-20, 2025 </option>
-  <option value="sep21">Sep 21 - Oct 4, 2025 </option>
-  <option value="oct5">Oct 5-18, 2025 </option>
-  <option value="oct19">Oct 19 - Nov 1, 2025 </option>
-  <option value="nov2">Nov 2-15, 2025 </option>
-  <option value="nov16">Nov 16-29, 2025 </option>
-  <option value="nov30">Nov 30 - Dec 13, 2025 </option>
-  <option value="dec14">Dec 14-27, 2025 </option>
-  <option value="dec28">Dec 28, 2025 - Jan 10, 2026</option>
-</select>
-  </div>
-</div>
+// ...existing code...
+<label for="staffPeriodSelector">Select Period:</label>
+<div id="staffPeriodDropdown"></div>
+<script>
+const staffPeriods = [
+  { value: "current", label: "Aug 24 - Sep 6, 2025 (Current)", disabled: false },
+  { value: "aug10", label: "Aug 10-23, 2025", disabled: false },
+  { value: "jul27", label: "Jul 27 - Aug 9, 2025", disabled: false },
+  { value: "jul13", label: "Jul 13-26, 2025", disabled: false },
+  { value: "jun29", label: "Jun 29 - Jul 12, 2025", disabled: false },
+  { value: "jun15", label: "Jun 15-28, 2025", disabled: false },
+  { value: "jun1", label: "Jun 1-14, 2025", disabled: false },
+  { value: "may18", label: "May 18-31, 2025", disabled: false },
+  { value: "may4", label: "May 4-17, 2025", disabled: false },
+  { value: "apr20", label: "Apr 20 - May 3, 2025", disabled: false },
+  { value: "apr6", label: "Apr 6-19, 2025", disabled: false },
+  { value: "mar23", label: "Mar 23 - Apr 5, 2025", disabled: false },
+  { value: "mar9", label: "Mar 9-22, 2025", disabled: false },
+  { value: "feb23", label: "Feb 23 - Mar 8, 2025", disabled: false },
+  { value: "feb9", label: "Feb 9-22, 2025", disabled: false },
+  { value: "jan26", label: "Jan 26 - Feb 8, 2025", disabled: false },
+  { value: "jan12", label: "Jan 12-25, 2025", disabled: false },
+  { value: "sep7", label: "Sep 7-20, 2025", disabled: true },
+  { value: "sep21", label: "Sep 21 - Oct 4, 2025", disabled: true },
+  { value: "oct5", label: "Oct 5-18, 2025", disabled: true },
+  { value: "oct19", label: "Oct 19 - Nov 1, 2025", disabled: true },
+  { value: "nov2", label: "Nov 2-15, 2025", disabled: true },
+  { value: "nov16", label: "Nov 16-29, 2025", disabled: true },
+  { value: "nov30", label: "Nov 30 - Dec 13, 2025", disabled: true },
+  { value: "dec14", label: "Dec 14-27, 2025", disabled: true },
+  { value: "dec28", label: "Dec 28, 2025 - Jan 10, 2026", disabled: true }
+];
+
+function createStaffDropdown(periods) {
+  const select = document.createElement('select');
+  select.id = "staffPeriodSelector";
+  select.style.padding = "8px";
+  select.style.borderRadius = "5px";
+  select.style.border = "1px solid #ddd";
+  select.onchange = function() { changeStaffPeriod(); };
+
+  periods.forEach(period => {
+    const option = document.createElement('option');
+    option.value = period.value;
+    option.textContent = period.label;
+    if (period.disabled) option.disabled = true;
+    select.appendChild(option);
+  });
+
+  document.getElementById('staffPeriodDropdown').appendChild(select);
+}
+
+// Dummy function for onchange
+function changeStaffPeriod() {
+  // Your logic here
+  alert("Staff period changed!");
+}
+
+createStaffDropdown(staffPeriods);
+</script>
+// ...existing code...
 <div class="tips-section">
         <h3>Performance Tips</h3>
         <ul id="performanceTips">
@@ -366,38 +396,83 @@
        <div id="performanceTrendChart"></div>
     </div>
   </div>
-  <div id="adminView" class="hidden">
-    <div class="header">
-      <h1>Admin Dashboard - Team Overview</h1>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <select id="periodSelector" onchange="changePeriod()" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
-          <option value="current">Aug 24 - Sep 6, 2025 (Current)</option>
-          <option value="aug10">Aug 10-23, 2025</option>
-          <option value="jul27">Jul 27 - Aug 9, 2025</option>
-          <option value="jul13">Jul 13-26, 2025</option>
-          <option value="jun29">Jun 29 - Jul 12, 2025</option>
-          <option value="jun15">Jun 15-28, 2025</option>
-          <option value="jun1">Jun 1-14, 2025</option>
-          <option value="may18">May 18-31, 2025</option>
-          <option value="may4">May 4-17, 2025</option>
-          <option value="apr20">Apr 20 - May 3, 2025</option>
-          <option value="apr6">Apr 6-19, 2025</option>
-          <option value="mar23">Mar 23 - Apr 5, 2025</option>
-          <option value="mar9">Mar 9-22, 2025</option>
-          <option value="feb23">Feb 23 - Mar 8, 2025</option>
-          <option value="feb9">Feb 9-22, 2025</option>
-          <option value="jan26">Jan 26 - Feb 8, 2025</option>
-          <option value="jan12">Jan 12-25, 2025</option>
-          <option value="sep7" disabled>Sep 7-20, 2025 </option>
-          <option value="sep21" disabled>Sep 21 - Oct 4, 2025 </option>
-          <option value="oct5" disabled>Oct 5-18, 2025 </option>
-          <option value="oct19" disabled>Oct 19 - Nov 1, 2025 </option>
-          <option value="nov2" disabled>Nov 2-15, 2025 </option>
-          <option value="nov16" disabled>Nov 16-29, 2025 </option>
-          <option value="nov30" disabled>Nov 30 - Dec 13, 2025 </option>
-          <option value="dec14" disabled>Dec 14-27, 2025 </option>
-          <option value="dec28" disabled>Dec 28, 2025 - Jan 10, 2026 </option>
-        </select>
+  // ...existing code...
+<div id="adminView" class="hidden">
+  <div class="header">
+    <h1>Admin Dashboard - Team Overview</h1>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <!-- Replace this select block: -->
+      <!--
+      <select id="periodSelector" onchange="changePeriod()" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+        ...all <option> tags...
+      </select>
+      -->
+      <!-- With this: -->
+      <div id="adminPeriodDropdown"></div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+  <!-- ...rest of your code... -->
+</div>
+
+<script>
+const adminPeriods = [
+  { value: "current", label: "Aug 24 - Sep 6, 2025 (Current)", disabled: false },
+  { value: "aug10", label: "Aug 10-23, 2025", disabled: false },
+  { value: "jul27", label: "Jul 27 - Aug 9, 2025", disabled: false },
+  { value: "jul13", label: "Jul 13-26, 2025", disabled: false },
+  { value: "jun29", label: "Jun 29 - Jul 12, 2025", disabled: false },
+  { value: "jun15", label: "Jun 15-28, 2025", disabled: false },
+  { value: "jun1", label: "Jun 1-14, 2025", disabled: false },
+  { value: "may18", label: "May 18-31, 2025", disabled: false },
+  { value: "may4", label: "May 4-17, 2025", disabled: false },
+  { value: "apr20", label: "Apr 20 - May 3, 2025", disabled: false },
+  { value: "apr6", label: "Apr 6-19, 2025", disabled: false },
+  { value: "mar23", label: "Mar 23 - Apr 5, 2025", disabled: false },
+  { value: "mar9", label: "Mar 9-22, 2025", disabled: false },
+  { value: "feb23", label: "Feb 23 - Mar 8, 2025", disabled: false },
+  { value: "feb9", label: "Feb 9-22, 2025", disabled: false },
+  { value: "jan26", label: "Jan 26 - Feb 8, 2025", disabled: false },
+  { value: "jan12", label: "Jan 12-25, 2025", disabled: false },
+  { value: "sep7", label: "Sep 7-20, 2025", disabled: true },
+  { value: "sep21", label: "Sep 21 - Oct 4, 2025", disabled: true },
+  { value: "oct5", label: "Oct 5-18, 2025", disabled: true },
+  { value: "oct19", label: "Oct 19 - Nov 1, 2025", disabled: true },
+  { value: "nov2", label: "Nov 2-15, 2025", disabled: true },
+  { value: "nov16", label: "Nov 16-29, 2025", disabled: true },
+  { value: "nov30", label: "Nov 30 - Dec 13, 2025", disabled: true },
+  { value: "dec14", label: "Dec 14-27, 2025", disabled: true },
+  { value: "dec28", label: "Dec 28, 2025 - Jan 10, 2026", disabled: true }
+];
+
+function createAdminDropdown(periods) {
+  const select = document.createElement('select');
+  select.id = "periodSelector";
+  select.style.padding = "8px";
+  select.style.borderRadius = "5px";
+  select.style.border = "1px solid #ddd";
+  select.onchange = function() { changePeriod(); };
+
+  periods.forEach(period => {
+    const option = document.createElement('option');
+    option.value = period.value;
+    option.textContent = period.label;
+    if (period.disabled) option.disabled = true;
+    select.appendChild(option);
+  });
+
+  document.getElementById('adminPeriodDropdown').appendChild(select);
+}
+
+// Dummy function for onchange
+function changePeriod() {
+  // Your logic here
+  alert("Admin period changed!");
+}
+
+createAdminDropdown(adminPeriods);
+</script>
+// ...existing code...
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
     </div>

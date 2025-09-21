@@ -2262,18 +2262,16 @@ const periodRanges = {
   dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10') }
 };
       Object.keys(periodRanges).forEach(periodKey => {
-        const period = periodRanges[periodKey];
-        const periodStaffData = {};
-        
-        const periodSales = parsedSales ? 
-          parsedSales.filter(row => {
-            const rowDate = parseDateConsistent(row['Sale Date']);
-            return rowDate >= period.start && rowDate <= period.end;
-          }) : [];
-          
-          if (periodKey === 'sep7') {
-  console.log('Sales rows for sep7:', periodSales.map(row => row['Sale Date']));
-}
+  const period = periodRanges[periodKey];
+  const periodStaffData = {}; // <-- Place this here
+
+  const periodSales = parsedSales ? 
+    parsedSales.filter(row => {
+      const rowDate = parseDateConsistent(row['Sale Date']);
+      return rowDate >= period.start && rowDate <= period.end;
+    }) : [];
+
+});
 
         const periodOOT = parsedOOT ? 
           parsedOOT.filter(row => {

@@ -1595,10 +1595,13 @@ function addStaffMember() {
     showNotification(`${name} added successfully`, 'success');
     
     // Refresh dashboard if admin view is active
+   function addStaffMember() {
+    // ...your code...
+    // Refresh dashboard if admin view is active
     if (currentUser === 'admin') {
         showAdminDashboard();
     }
-}
+} // <-- This closes the addStaffMember function
 
 function removeStaffMember() {
     const select = document.getElementById('quickRemoveSelect');

@@ -2252,6 +2252,10 @@ const periodRanges = {
             const rowDate = parseDateConsistent(row['Sale Date']);
             return rowDate >= period.start && rowDate <= period.end;
           }) : [];
+          
+          if (periodKey === 'sep7') {
+  console.log('Sales rows for sep7:', periodSales.map(row => row['Sale Date']));
+}
 
         const periodOOT = parsedOOT ? 
           parsedOOT.filter(row => {
@@ -2553,4 +2557,3 @@ function loadAllDataFromFirebase() {
   </script>
 </body>
 </html>
-

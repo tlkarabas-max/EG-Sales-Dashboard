@@ -1504,7 +1504,7 @@ function populateRemoveDropdown() {
 }
 
 // Add new staff member
-// ...existing code...
+// Add new staff member
 function addStaffMember() {
     const name = document.getElementById('quickStaffName').value.trim();
     const normalizedName = normalizeName(name); // Normalize the name
@@ -1563,22 +1563,21 @@ function addStaffMember() {
             console.error('Error saving to Firebase:', error);
         });
     }
-    
-}
+
     // Update login dropdown
     const loginSelect = document.getElementById('staffSelect');
     if (loginSelect) {
         // Check if option already exists
         let exists = false;
         for (let option of loginSelect.options) {
-            if (option.value === name) {
+            if (option.value === normalizedName) {
                 exists = true;
                 break;
             }
         }
         if (!exists) {
             const newOption = document.createElement('option');
-           newOption.value = normalizedName;
+            newOption.value = normalizedName;
             newOption.textContent = name;
             loginSelect.appendChild(newOption);
         }
@@ -1591,10 +1590,13 @@ function addStaffMember() {
     
     // Update remove dropdown
     populateRemoveDropdown();
-    
+
     showNotification(`${name} added successfully`, 'success');
-    
-// ...existing code...
+
+    if (currentUser === 'admin') {
+        showAdminDashboard();
+    }
+}
 function removeStaffMember() {
     const select = document.getElementById('quickRemoveSelect');
     const name = select.value;

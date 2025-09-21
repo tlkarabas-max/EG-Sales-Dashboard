@@ -2305,7 +2305,9 @@ const periodRanges = {
         const ootInvoices = new Set(periodOOT.map(row => row['Invoice No']));
         
 Object.keys(staffData).forEach(staffName => {
-  // Calculate staff hours with fallback for current period
+  const normalizedName = normalizeName(staffName);
+  
+  // Calculate staff hours from payroll
   const staffHours = periodPayroll
     .filter(row => row['Name'] && normalizeName(row['Name']) === normalizeName(staffName))
     .reduce((sum, row) => {
@@ -2315,23 +2317,48 @@ Object.keys(staffData).forEach(staffName => {
       }
       return sum + parseFloat(hours);
     }, 0);
-
-  // For current period without payroll, estimate hours based on activity
+  
+  // Calculate memberships first
+  const membershipsSold = periodMemberships
+    .filter(row => row['Sold By'] && normalizeName(row['Sold By']) === normalizeName(staffName))
+    .length;
+  
+  // Get staff sales
+  const staffSales = periodSales.filter(row => 
+    row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizeName(staffName)
+  );
+  
+  // Calculate enhancements
+  const enhancementRows = staffSales.filter(row => {
+    const category = (row['Category'] || '').trim().toLowerCase();
+    return category.startsWith('enhancement');
+  });
+  const enhancements = enhancementRows.length;
+  
+  // NOW do hours estimation with all variables available
   let estimatedHours = staffHours;
-  if (staffHours === 0 && periodKey === 'current') {
+  if (staffHours === 0) {
     // Count unique days with activity
     const uniqueDays = new Set();
-    periodSales.filter(row => 
-      row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizeName(staffName)
-    ).forEach(sale => {
+    staffSales.forEach(sale => {
       const saleDate = parseDateConsistent(sale['Sale Date']);
       if (saleDate) {
         uniqueDays.add(saleDate.toDateString());
       }
     });
     
-    // Estimate 8 hours per active day (adjustable)
+    // Estimate 8 hours per active day
     estimatedHours = uniqueDays.size * 8;
+    
+    // If still 0, check if there are memberships
+    if (estimatedHours === 0 && membershipsSold > 0) {
+      estimatedHours = 40; // Default hours for staff with memberships
+    }
+    
+    // If still 0 but has enhancements, give default hours
+    if (estimatedHours === 0 && enhancements > 0) {
+      estimatedHours = 40; // Default hours for staff with enhancements
+    }
     
     // Or use previous period average if available
     const prevPeriodData = periodData['sep7'] && periodData['sep7'][normalizedName];
@@ -2340,71 +2367,48 @@ Object.keys(staffData).forEach(staffName => {
     }
   }
   
-  const membershipsSold = periodMemberships
-            .filter(row => row['Sold By'] && normalizeName(row['Sold By']) === normalizeName(staffName))
-            .length;
-          
-          const staffSales = periodSales.filter(row => 
-            row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizeName(staffName)
-          );
-
-          const uniqueGuestMap = new Map();
-
-          staffSales.forEach(row => {
-            const invoiceNo = row['Invoice No'];
-            if (!invoiceNo) return;
-            
-            const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
-            const isOOT = ootInvoices.has(invoiceNo);
-            
-            if (!uniqueGuestMap.has(invoiceNo)) {
-              uniqueGuestMap.set(invoiceNo, {
-                isEligible: !isExistingMember && !isOOT
-              });
-            }
-          });
-
-          const eligibleGuests = Array.from(uniqueGuestMap.values())
-            .filter(guest => guest.isEligible).length;
-
-          const enhancementRows = staffSales.filter(row => {
-            const category = (row['Category'] || '').trim().toLowerCase();
-            return category.startsWith('enhancement');
-          });
-
-          const enhancements = enhancementRows.length;
-          
-          console.log('Debug staff:', staffName, {
-    hours: staffHours,
-    enhancements,
-    membershipsSold,
-    staffSales: staffSales.length
+  // Calculate unique guests and eligibility
+  const uniqueGuestMap = new Map();
+  staffSales.forEach(row => {
+    const invoiceNo = row['Invoice No'];
+    if (!invoiceNo) return;
+    
+    const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
+    const isOOT = ootInvoices.has(invoiceNo);
+    
+    if (!uniqueGuestMap.has(invoiceNo)) {
+      uniqueGuestMap.set(invoiceNo, {
+        isEligible: !isExistingMember && !isOOT
+      });
+    }
   });
-
-          const normalizedName = normalizeName(staffName);
-          const originalData = periodData[periodKey] && periodData[periodKey][normalizedName] ? 
-            periodData[periodKey][normalizedName] : staffData[normalizedName];
-
-       periodStaffData[normalizedName] = {
-  enhance: enhancements,
-  enhanceGoal: calculateFairEnhancementGoal(
-    estimatedHours > 0 ? estimatedHours : (originalData.hours || 40),
-    originalData.tenureMonths || 6
-  ),
-  member: membershipsSold,
-  memberGoal: originalData.memberGoal || 2,
-  rebook: originalData.rebook || 0,
-  hours: estimatedHours > 0 ? Math.round(estimatedHours) : (originalData.hours || 40),
-  eligibleGuests: eligibleGuests,
-  totalGuests: staffSales.length,
-  prevPerformance: originalData.prevPerformance || 0,
-  tenureMonths: originalData.tenureMonths || 6,
-  isEstimated: staffHours === 0 && estimatedHours > 0
-};
-          
-          const bonusCalc = calculateBonus(periodStaffData[normalizedName]);
-          periodStaffData[normalizedName].bonus = bonusCalc.total;
-        });
+  
+  const eligibleGuests = Array.from(uniqueGuestMap.values())
+    .filter(guest => guest.isEligible).length;
+  
+  const originalData = periodData[periodKey] && periodData[periodKey][normalizedName] ? 
+    periodData[periodKey][normalizedName] : staffData[normalizedName];
+  
+  periodStaffData[normalizedName] = {
+    enhance: enhancements,
+    enhanceGoal: calculateFairEnhancementGoal(
+      estimatedHours > 0 ? estimatedHours : (originalData.hours || 40),
+      originalData.tenureMonths || 6
+    ),
+    member: membershipsSold,
+    memberGoal: originalData.memberGoal || 2,
+    rebook: originalData.rebook || 0,
+    hours: estimatedHours > 0 ? Math.round(estimatedHours) : (originalData.hours || 40),
+    eligibleGuests: eligibleGuests,
+    totalGuests: staffSales.length,
+    prevPerformance: originalData.prevPerformance || 0,
+    tenureMonths: originalData.tenureMonths || 6,
+    isEstimated: staffHours === 0 && estimatedHours > 0
+  };
+  
+  const bonusCalc = calculateBonus(periodStaffData[normalizedName]);
+  periodStaffData[normalizedName].bonus = bonusCalc.total;
+});
         
         periodData[periodKey] = periodStaffData;
       });

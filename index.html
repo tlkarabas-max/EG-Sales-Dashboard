@@ -1594,14 +1594,12 @@ function addStaffMember() {
     
     showNotification(`${name} added successfully`, 'success');
     
-    // Refresh dashboard if admin view is active
-   function addStaffMember() {
+function addStaffMember() {
     // ...your code...
-    // Refresh dashboard if admin view is active
     if (currentUser === 'admin') {
         showAdminDashboard();
     }
-} // <-- This closes the addStaffMember function
+}
 
 function removeStaffMember() {
     const select = document.getElementById('quickRemoveSelect');
@@ -1629,10 +1627,10 @@ function removeStaffMember() {
     for (let i = 0; i < select.options.length; i++) {
         if (normalizeName(select.options[i].value) === normalizedName) {
             select.remove(i);
-            break;
+               break;
         }
     }
-
+}
     // Mark as inactive in Firebase (preserves history)
     if (typeof database !== 'undefined' && currentUser === 'admin') {
         const staffRef = database.ref(`dashboard/staffRegistry/${normalizedName}`);

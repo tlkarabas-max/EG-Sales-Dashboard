@@ -2126,6 +2126,9 @@ function extractStaffFromData() {
   }
 
   const staffList = Array.from(staffSet).filter(name => name && name.trim());
+  
+  console.log('Normalized staff from CSVs:', staffList);
+  console.log('Normalized approved staff:', window.APPROVED_STAFF.map(normalizeName));
 
   staffList.forEach(staffName => {
     if (

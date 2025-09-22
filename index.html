@@ -2340,7 +2340,7 @@ const periodOOT = parsedOOT ?
     row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizedName
   );
 
- // Calculate enhancements
+// Calculate enhancements
 const enhancementRows = staffSales.filter(row => {
   const category = (row['Category'] || '').toLowerCase().trim();
   return category === 'enhancement' || 
@@ -2349,11 +2349,16 @@ const enhancementRows = staffSales.filter(row => {
 });
 const enhancements = enhancementRows.length;
 
-// Debug logging
-if (periodKey === 'current' && normalizedName === 'Angela McNally') {
-  console.log(`Angela McNally - Total sales: ${staffSales.length}, Enhancements: ${enhancements}`);
+// Add the debug code here:
+if (periodKey === 'sep7') {
+  console.log(`${normalizedName} - Period Sep 7-20:`);
+  console.log(`  Total sales: ${staffSales.length}`);
+  console.log(`  Enhancements: ${enhancements}`);
   if (staffSales.length > 0) {
-    console.log('Sample categories:', [...new Set(staffSales.slice(0, 20).map(r => r['Category']))]);
+    const categories = staffSales.map(r => r['Category']);
+    const enhanceCount = categories.filter(c => c && c.toLowerCase().includes('enhancement')).length;
+    console.log(`  Categories with 'enhancement': ${enhanceCount}`);
+    console.log(`  Unique categories:`, [...new Set(categories)]);
   }
 }
   // Calculate rebook rate from appointments

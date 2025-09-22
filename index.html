@@ -2340,13 +2340,22 @@ const periodOOT = parsedOOT ?
     row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizedName
   );
 
-  // Calculate enhancements
-  const enhancementRows = staffSales.filter(row => {
-    const category = (row['Category'] || '').trim().toLowerCase();
-    return category.startsWith('enhancement');
-  });
-  const enhancements = enhancementRows.length;
+ // Calculate enhancements
+const enhancementRows = staffSales.filter(row => {
+  const category = (row['Category'] || '').toLowerCase().trim();
+  return category === 'enhancement' || 
+         category === 'enhancements' || 
+         category.includes('enhancement');
+});
+const enhancements = enhancementRows.length;
 
+// Debug logging
+if (periodKey === 'current' && normalizedName === 'Angela McNally') {
+  console.log(`Angela McNally - Total sales: ${staffSales.length}, Enhancements: ${enhancements}`);
+  if (staffSales.length > 0) {
+    console.log('Sample categories:', [...new Set(staffSales.slice(0, 20).map(r => r['Category']))]);
+  }
+}
   // Calculate rebook rate from appointments
   const staffAppointments = parsedAppointments ? 
     parsedAppointments.filter(row => {

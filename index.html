@@ -2765,9 +2765,13 @@
                     // Calculate enhancements
                     const enhancementRows = staffSales.filter(row => {
                         const category = (row['Category'] || '').toLowerCase().trim();
-                        return category === 'enhancement' ||
-                            category === 'enhancements' ||
-                            category.includes('enhancement');
+                        // Debug: print category for sep7 period
+                        if (periodKey === 'sep7') {
+                            console.log(`[sep7 enhance debug] Staff: ${normalizedName}, Category:`, row['Category']);
+                        }
+                        return category === 'enhancement' || 
+                                     category === 'enhancements' || 
+                                     category.includes('enhancement');
                     });
                     const enhancements = enhancementRows.length;
 

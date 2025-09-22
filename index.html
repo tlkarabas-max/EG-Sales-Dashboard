@@ -2779,16 +2779,6 @@
                     });
                     const enhancements = enhancementRows.length;
 
-                    // Add this debug code:
-                    if (periodKey === 'sep7') {
-                        console.log(`[sep7 debug] Staff: ${normalizedName}`);
-                        console.log(`  Total sales in period: ${staffSales.length}`);
-                        staffSales.forEach(row => {
-                            const rawDate = row['Sale Date'];
-                            const parsedDate = parseDateConsistent(rawDate);
-                            console.log(`    Sale Date: ${rawDate}, Parsed:`, parsedDate);
-                        });
-                    }
 
                         // Estimate 8 hours per active day
                         estimatedHours = uniqueDays.size * 8;

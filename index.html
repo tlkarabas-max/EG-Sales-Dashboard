@@ -2700,33 +2700,31 @@
                 dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10T23:59:59') }
             };
             Object.keys(periodRanges).forEach(periodKey => {
+            function toYMD(d) {
+                return d ? `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}` : 'null';
+            }
             if (periodKey === 'sep7' && parsedSales && parsedSales.length > 0) {
                 console.log('[sep7 date parse test] First 10 sales:');
                 parsedSales.slice(0, 10).forEach(row => {
                     const rawDate = row['Sale Date'];
                     const parsedDate = parseDateConsistent(rawDate);
-                    console.log(`  Raw: ${rawDate}, Parsed:`, parsedDate);
+                    console.log('  Raw:', rawDate, 'Parsed:', toYMD(parsedDate));
                 });
             }
                 const period = periodRanges[periodKey];
                 const periodStaffData = {};
 
                 const periodSales = parsedSales ?
-                    (() => {
-                        function toYMD(d) {
-                            return d ? `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}` : 'null';
+                    parsedSales.filter(row => {
+                        const rowDate = parseDateConsistent(row['Sale Date']);
+                        const rowYMD = rowDate ? rowDate.setHours(0,0,0,0) : null;
+                        const startYMD = period.start ? period.start.setHours(0,0,0,0) : null;
+                        const endYMD = period.end ? period.end.setHours(0,0,0,0) : null;
+                        if (periodKey === 'sep7' && rowDate) {
+                            console.log('[sep7 sales filter] Sale Date:', row['Sale Date'], 'Parsed:', toYMD(rowDate), 'Period:', toYMD(period.start), toYMD(period.end));
                         }
-                        return parsedSales.filter(row => {
-                            const rowDate = parseDateConsistent(row['Sale Date']);
-                            const rowYMD = rowDate ? rowDate.setHours(0,0,0,0) : null;
-                            const startYMD = period.start ? period.start.setHours(0,0,0,0) : null;
-                            const endYMD = period.end ? period.end.setHours(0,0,0,0) : null;
-                            if (periodKey === 'sep7' && rowDate) {
-                                console.log(`[sep7 sales filter] Sale Date: ${row['Sale Date']}, Parsed:`, toYMD(rowDate), 'Period:', toYMD(period.start), toYMD(period.end));
-                            }
-                            return rowYMD >= startYMD && rowYMD <= endYMD;
-                        });
-                    })() : [];
+                        return rowYMD >= startYMD && rowYMD <= endYMD;
+                    }) : [];
 
                 const periodOOT = parsedOOT ?
                     parsedOOT.filter(row => {

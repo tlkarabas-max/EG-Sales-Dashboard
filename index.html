@@ -2687,14 +2687,14 @@
                 jul27: { start: new Date('2025-07-27'), end: new Date('2025-08-09') },
                 aug10: { start: new Date('2025-08-10'), end: new Date('2025-08-23') },
                 aug24: { start: new Date('2025-08-24'), end: new Date('2025-09-06') },
-                sep7: { start: new Date('2025-09-07'), end: new Date('2025-09-20') },
-                current: { start: new Date('2025-09-21'), end: new Date('2025-10-04') },
-                oct5: { start: new Date('2025-10-05'), end: new Date('2025-10-18') },
-                oct19: { start: new Date('2025-10-19'), end: new Date('2025-11-01') },
-                nov2: { start: new Date('2025-11-02'), end: new Date('2025-11-15') },
-                nov30: { start: new Date('2025-11-30'), end: new Date('2025-12-13') },
-                dec14: { start: new Date('2025-12-14'), end: new Date('2025-12-27') },
-                dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10') }
+                sep7: { start: new Date('2025-09-07'), end: new Date('2025-09-20T23:59:59') },
+                current: { start: new Date('2025-09-21'), end: new Date('2025-10-04T23:59:59') },
+                oct5: { start: new Date('2025-10-05'), end: new Date('2025-10-18T23:59:59') },
+                oct19: { start: new Date('2025-10-19'), end: new Date('2025-11-01T23:59:59') },
+                nov2: { start: new Date('2025-11-02'), end: new Date('2025-11-15T23:59:59') },
+                nov30: { start: new Date('2025-11-30'), end: new Date('2025-12-13T23:59:59') },
+                dec14: { start: new Date('2025-12-14'), end: new Date('2025-12-27T23:59:59') },
+                dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10T23:59:59') }
             };
             Object.keys(periodRanges).forEach(periodKey => {
                 const period = periodRanges[periodKey];

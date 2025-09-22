@@ -2208,6 +2208,11 @@ function extractStaffFromData() {
       parsedSales = uploadedData.sales ? parseCSV(uploadedData.sales) : null;
       parsedOOT = uploadedData.oot ? parseCSV(uploadedData.oot) : null;
       
+      if (parsedOOT && parsedOOT.length > 0) {
+  const typeValues = [...new Set(parsedOOT.map(row => row['Type']))];
+  console.log('Unique Type values in OOT file:', typeValues);
+}
+      
       const validations = [
         {
           data: parsedSales,
@@ -2282,14 +2287,15 @@ Object.keys(periodRanges).forEach(periodKey => {
       return rowDate >= period.start && rowDate <= period.end;
     }) : [];
 
- const periodOOT = parsedOOT ? 
+const periodOOT = parsedOOT ? 
   parsedOOT.filter(row => {
     const rowDate = parseDateConsistent(row['Sales Date']);
-    // Filter for OOT type guests in this period
+    const type = row['Type'] ? row['Type'].toLowerCase().trim() : '';
+    // More flexible matching
     return rowDate >= period.start && rowDate <= period.end && 
-           row['Type'] && row['Type'].toLowerCase().includes('oot'); // or whatever identifies OOT
+           (type.includes('out') || type === 'oot' || type === 'o');
   }) : [];
-
+  
   const periodMemberships = parsedMemberships ? 
     parsedMemberships.filter(row => {
       const rowDate = parseDateConsistent(row['Sale Date']);

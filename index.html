@@ -75,7 +75,7 @@
     .tips-section h3 { color: #1976d2; margin-bottom: 10px; font-size: 16px; }
     .tips-section ul { list-style: none; padding: 0; }
     .tips-section li { padding: 5px 0; color: #555; font-size: 14px; }
-    .tips-section li:before { content: "✔ "; color: #1976d2; font-weight: bold; margin-right: 8px; }
+    .tips-section li:before { content: "✓ "; color: #1976d2; font-weight: bold; margin-right: 8px; }
     
     /* Admin Dashboard Styles */
     .admin-container { padding: 30px; max-width: 1400px; margin: 0 auto; }
@@ -619,7 +619,7 @@
                              box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);"
                       onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(102, 126, 234, 0.4)';"
                       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)';">
-                <span>✔</span> Validate Data First
+                <span>✓</span> Validate Data First
               </button>
               
               <!-- Process All Data Button -->
@@ -976,7 +976,7 @@ function parseDateConsistent(dateStr, formats = null) {
       files.forEach(file => {
         const timestamp = uploadTimestamps[file.key];
         const statusColor = timestamp ? '#16a34a' : '#dc2626';
-        const statusIcon = timestamp ? '✔' : '✗';
+        const statusIcon = timestamp ? '✓' : '✗';
         
         html += `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border-radius: 4px;">
@@ -1121,3 +1121,1439 @@ const periodOptions = [
   { value: "oct19", label: "Oct 19 - Nov 1, 2025", disabled: false },
   { value: "nov2", label: "Nov 2-15, 2025", disabled: false },
   { value: "nov16", label: "Nov 16-29, 2025", disabled: false },
+  { value: "nov30", label: "Nov 30 - Dec 13, 2025", disabled: false },
+  { value: "dec14", label: "Dec 14-27, 2025", disabled: false },
+  { value: "dec28", label: "Dec 28 - Jan 10, 2026", disabled: false }
+];
+
+    function createStaffDropdown() {
+      const select = document.createElement('select');
+      select.id = "staffPeriodSelector";
+      select.style.padding = "8px";
+      select.style.borderRadius = "5px";
+      select.style.border = "1px solid #ddd";
+      select.onchange = changeStaffPeriod;
+
+      periodOptions.forEach(period => {
+        const option = document.createElement('option');
+        option.value = period.value;
+        option.textContent = period.label;
+        if (period.disabled) option.disabled = true;
+        select.appendChild(option);
+      });
+
+      const container = document.getElementById('staffPeriodDropdown');
+      if (container) {
+        container.appendChild(select);
+      }
+    }
+
+    function createAdminDropdown() {
+      const select = document.createElement('select');
+      select.id = "periodSelector";
+      select.style.padding = "8px";
+      select.style.borderRadius = "5px";
+      select.style.border = "1px solid #ddd";
+      select.onchange = changePeriod;
+
+      periodOptions.forEach(period => {
+        const option = document.createElement('option');
+        option.value = period.value;
+        option.textContent = period.label;
+        if (period.disabled) option.disabled = true;
+        select.appendChild(option);
+      });
+
+      const container = document.getElementById('adminPeriodDropdown');
+      if (container) {
+        container.appendChild(select);
+      }
+    }
+
+    // Login functions
+    function loginStaff() {
+      const name = document.getElementById('staffSelect').value;
+      const password = document.getElementById('staffPassword').value;
+      
+      if (!name) {
+        showNotification('Please select your name', 'error');
+        return;
+      }
+      
+      const emailName = name.toLowerCase().replace(' ', '.');
+      const email = `${emailName}@salesdashboard.com`;
+      
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          currentUser = name;
+          showStaffDashboard();
+          showNotification(`Welcome, ${name}!`, 'success');
+        })
+        .catch((error) => {
+          console.error('Staff login error:', error.code);
+          
+          if (error.code === 'auth/wrong-password') {
+            showNotification('Incorrect password', 'error');
+          } else if (error.code === 'auth/user-not-found') {
+            showNotification('User not found - contact admin', 'error');
+          } else if (error.code === 'auth/too-many-requests') {
+            showNotification('Too many failed attempts. Try again later.', 'error');
+          } else {
+            showNotification('Login failed: ' + error.message, 'error');
+          }
+        });
+    }
+
+    function loginAdmin() {
+      const password = document.getElementById('adminPassword').value;
+      
+      if (!password) {
+        showNotification('Please enter password', 'error');
+        return;
+      }
+      
+      auth.signInWithEmailAndPassword('admin@salesdashboard.com', password)
+        .then((userCredential) => {
+          currentUser = 'admin';
+          loadStaffRegistry();
+          loadAllDataFromFirebase();
+          showAdminDashboard();
+          showNotification('Admin access granted', 'success');
+        })
+        .catch((error) => {
+          console.error('Login error:', error.code, error.message);
+          
+          if (error.code === 'auth/wrong-password') {
+            showNotification('Incorrect admin password', 'error');
+          } else if (error.code === 'auth/user-not-found') {
+            showNotification('Admin user not found - check Firebase setup', 'error');
+          } else if (error.code === 'auth/invalid-email') {
+            showNotification('Invalid email format', 'error');
+          } else if (error.code === 'auth/too-many-requests') {
+            showNotification('Too many failed attempts. Try again later.', 'error');
+          } else {
+            showNotification('Login failed: ' + error.message, 'error');
+          }
+        });
+    }
+
+    function logout() {
+      currentUser = null;
+      currentPeriod = 'current';
+      document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('staffView').classList.add('hidden');
+      document.getElementById('adminView').classList.add('hidden');
+      
+      document.getElementById('staffSelect').value = '';
+      document.getElementById('staffPassword').value = '';
+      document.getElementById('adminPassword').value = '';
+      
+      uploadedData = {
+        appointments: null,
+        memberships: null,
+        sales: null,
+        oot: null,
+        payroll: null,
+        bonusStructure: null,
+        staffList: null
+      };
+      
+      showNotification('Logged out successfully', 'success');
+    }
+
+    // Dashboard display functions
+    function showStaffDashboard() {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('staffView').classList.remove('hidden');
+      document.getElementById('adminView').classList.add('hidden');
+      
+      const normalizedName = normalizeName(currentUser);
+      const data = staffData[normalizedName] || { ...DEFAULT_STAFF_STRUCTURE };
+      
+      document.getElementById('staffName').textContent = currentUser;
+      document.getElementById('staffTitle').textContent = `Performance Dashboard - ${currentUser}`;
+      document.getElementById('hoursWorked').textContent = `${data.hours} hrs`;
+      
+      const convGoal = getConversionGoal(data.tenureMonths);
+      const actualConv = data.eligibleGuests > 0 ? 
+        (data.member / data.eligibleGuests * 100) : 0;
+      const adjustedEnhanceGoal = calculateFairEnhancementGoal(data.hours, data.tenureMonths);
+      
+      document.getElementById('enhanceValue').textContent = data.enhance;
+      document.getElementById('enhanceAdjusted').textContent = adjustedEnhanceGoal;
+      
+      const enhancePercent = Math.round((data.enhance / adjustedEnhanceGoal) * 100);
+      const enhanceStatus = document.getElementById('enhanceStatus');
+      const enhanceMessage = document.getElementById('enhanceMessage');
+      
+      if (enhancePercent >= 100) {
+        enhanceStatus.textContent = '100% - Goal Achieved!';
+        enhanceStatus.className = 'status-badge status-green';
+        enhanceMessage.textContent = 'Excellent work!';
+      } else if (enhancePercent >= 75) {
+        enhanceStatus.textContent = `${enhancePercent}% - Almost There!`;
+        enhanceStatus.className = 'status-badge status-green';
+        enhanceMessage.textContent = `Keep pushing!`;
+      } else {
+        enhanceStatus.textContent = `${enhancePercent}% of adjusted goal`;
+        enhanceStatus.className = 'status-badge status-yellow';
+        enhanceMessage.textContent = `Focus on enhancements`;
+      }
+      
+      document.getElementById('memberValue').textContent = data.member;
+      document.getElementById('convGoal').textContent = `${convGoal}%`;
+      document.getElementById('convActual').textContent = `${actualConv.toFixed(1)}%`;
+      document.getElementById('eligibleGuestsCount').textContent = data.eligibleGuests;
+      
+      const convPercent = Math.round((actualConv / convGoal) * 100);
+      const memberStatus = document.getElementById('memberStatus');
+      const memberMessage = document.getElementById('memberMessage');
+      
+      if (convPercent >= 100) {
+        memberStatus.textContent = 'Conversion Goal Met!';
+        memberStatus.className = 'status-badge status-green';
+        memberMessage.textContent = `Exceeding ${convGoal}% target!`;
+      } else if (convPercent >= 75) {
+        memberStatus.textContent = `${convPercent}% of Goal`;
+        memberStatus.className = 'status-badge status-yellow';
+        memberMessage.textContent = `Close to ${convGoal}% target`;
+      } else {
+        memberStatus.textContent = `${convPercent}% of Goal`;
+        memberStatus.className = 'status-badge status-red';
+        memberMessage.textContent = `Target: ${convGoal}% conversion`;
+      }
+      
+      document.getElementById('rebookValue').textContent = `${data.rebook}%`;
+      document.getElementById('totalGuestsServed').textContent = data.totalGuests;
+      const rebookStatus = document.getElementById('rebookStatus');
+      const rebookMessage = document.getElementById('rebookMessage');
+      
+      if (data.rebook >= 20) {
+        rebookStatus.textContent = 'Target Met!';
+        rebookStatus.className = 'status-badge status-green';
+        rebookMessage.textContent = 'Great client relationships!';
+      } else {
+        rebookStatus.textContent = 'Below Target';
+        rebookStatus.className = 'status-badge status-yellow';
+        rebookMessage.textContent = 'Focus on follow-ups';
+      }
+      
+      const performanceScore = calculatePerformanceScore(data);
+      document.getElementById('overallValue').textContent = `${performanceScore}%`;
+      const overallStatus = document.getElementById('overallStatus');
+      const overallMessage = document.getElementById('overallMessage');
+      
+      const trend = performanceScore - data.prevPerformance;
+      const trendElement = document.getElementById('performanceTrend');
+      if (trend > 0) {
+        trendElement.innerHTML = `<span class="trend-up">↑ ${trend}%</span>`;
+      } else if (trend < 0) {
+        trendElement.innerHTML = `<span class="trend-down">↓ ${Math.abs(trend)}%</span>`;
+      } else {
+        trendElement.innerHTML = `<span class="trend-neutral">→ 0%</span>`;
+      }
+      
+      if (performanceScore >= 80) {
+        overallStatus.textContent = 'Excellent!';
+        overallStatus.className = 'status-badge status-green';
+        overallMessage.textContent = 'Top performer!';
+      } else if (performanceScore >= 60) {
+        overallStatus.textContent = 'Good Work!';
+        overallStatus.className = 'status-badge status-green';
+        overallMessage.textContent = 'Above average';
+      } else {
+        overallStatus.textContent = 'Room to Grow';
+        overallStatus.className = 'status-badge status-yellow';
+        overallMessage.textContent = 'Keep improving';
+      }
+      
+      updateComparisonTable(data);
+      
+      const bonusCalc = calculateBonus(data);
+      document.getElementById('totalBonus').textContent = `${bonusCalc.total.toFixed(2)}`;
+      document.getElementById('enhanceBonus').textContent = `${bonusCalc.enhanceBonus.toFixed(2)}`;
+      document.getElementById('membershipBonus').textContent = `${bonusCalc.membershipBonus.toFixed(2)}`;
+      document.getElementById('performanceBonus').textContent = `${bonusCalc.performanceBonus.toFixed(2)}`;
+      
+      generatePerformanceTips(data, actualConv, convGoal);
+      document.getElementById('quickActionsPanel').style.display = 'block';
+    }
+
+    function showAdminDashboard() {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('staffView').classList.add('hidden');
+      document.getElementById('adminView').classList.remove('hidden');
+      
+      const staffArray = Object.values(staffData);
+      const totalHours = staffArray.reduce((sum, s) => sum + s.hours, 0);
+      
+      const avgConv = staffArray.reduce((sum, s) => {
+        return sum + (s.eligibleGuests > 0 ? (s.member / s.eligibleGuests * 100) : 0);
+      }, 0) / staffArray.length;
+      
+      const avgRebook = Math.round(staffArray.reduce((sum, s) => sum + s.rebook, 0) / staffArray.length);
+      const totalBonus = staffArray.reduce((sum, s) => {
+        const bonusCalc = calculateBonus(s);
+        return sum + bonusCalc.total;
+      }, 0);
+      
+      document.getElementById('totalHours').textContent = totalHours;
+      document.getElementById('avgConvAdmin').textContent = `${avgConv.toFixed(1)}%`;
+      document.getElementById('avgRebookAdmin').textContent = `${avgRebook}%`;
+      document.getElementById('totalTeamBonus').textContent = `${totalBonus.toFixed(2)}`;
+      
+      const performers = Object.entries(staffData)
+        .map(([name, data]) => ({ name, score: calculatePerformanceScore(data) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+      
+      document.getElementById('topPerformers').innerHTML = performers
+        .map((p, i) => `<li>${p.name} (${p.score}%)</li>`)
+        .join('');
+      
+      let tableHTML = '';
+      Object.entries(staffData).forEach(([name, data]) => {
+        const performance = calculatePerformanceScore(data);
+        const actualConv = data.eligibleGuests > 0 ? 
+          (data.member / data.eligibleGuests * 100) : 0;
+        const convGoal = getConversionGoal(data.tenureMonths);
+        const adjustedEnhanceGoal = calculateFairEnhancementGoal(data.hours, data.tenureMonths);
+        
+        const bonusCalc = calculateBonus(data);
+        
+        tableHTML += `
+        <tr>
+          <td>${name}</td>
+          <td>${data.hours}</td>
+          <td>${data.member}</td>
+          <td style="font-weight: bold; color: ${actualConv >= convGoal ? '#28a745' : '#dc3545'}">
+            ${actualConv.toFixed(1)}%
+          </td>
+          <td>${convGoal}%</td>
+          <td style="color: ${data.enhance >= adjustedEnhanceGoal ? '#28a745' : '#dc3545'}">
+            ${data.enhance}
+          </td>
+          <td>${adjustedEnhanceGoal}</td>
+          <td>20%</td>
+          <td style="color: ${data.rebook >= 20 ? '#28a745' : '#dc3545'}">${data.rebook}%</td>
+          <td>${bonusCalc.total.toFixed(2)}</td>
+          <td>
+            <div class="performance-bar">
+              <div class="performance-fill" style="width: ${performance}%"></div>
+            </div>
+            ${performance}%
+          </td>
+        </tr>`;
+      });
+      
+      document.getElementById('teamTableBody').innerHTML = tableHTML;
+      document.getElementById('quickActionsPanel').style.display = 'block';
+      updateUploadTimestamps();
+    }
+
+    function updateComparisonTable(userData) {
+      const allStaff = Object.values(staffData);
+      
+      const avgConv = allStaff.reduce((sum, s) => {
+        return sum + (s.eligibleGuests > 0 ? (s.member / s.eligibleGuests * 100) : 0);
+      }, 0) / allStaff.length;
+      
+      const avgMemPerHour = allStaff.reduce((sum, s) => sum + (s.member / s.hours), 0) / allStaff.length;
+      const avgEnhPerHour = allStaff.reduce((sum, s) => sum + (s.enhance / s.hours), 0) / allStaff.length;
+      const avgRebook = allStaff.reduce((sum, s) => sum + s.rebook, 0) / allStaff.length;
+      
+      const topConv = Math.max(...allStaff.map(s => s.eligibleGuests > 0 ? (s.member / s.eligibleGuests * 100) : 0));
+      const topMemPerHour = Math.max(...allStaff.map(s => s.member / s.hours));
+      const topEnhPerHour = Math.max(...allStaff.map(s => s.enhance / s.hours));
+      const topRebook = Math.max(...allStaff.map(s => s.rebook));
+      
+      const yourConv = userData.eligibleGuests > 0 ? (userData.member / userData.eligibleGuests * 100) : 0;
+      document.getElementById('yourConv').textContent = `${yourConv.toFixed(1)}%`;
+      document.getElementById('avgConv').textContent = `${avgConv.toFixed(1)}%`;
+      document.getElementById('topConv').textContent = `${topConv.toFixed(1)}%`;
+      
+      document.getElementById('yourMemPerHour').textContent = (userData.member / userData.hours).toFixed(3);
+      document.getElementById('avgMemPerHour').textContent = avgMemPerHour.toFixed(3);
+      document.getElementById('topMemPerHour').textContent = topMemPerHour.toFixed(3);
+      
+      document.getElementById('yourEnhPerHour').textContent = (userData.enhance / userData.hours).toFixed(3);
+      document.getElementById('avgEnhPerHour').textContent = avgEnhPerHour.toFixed(3);
+      document.getElementById('topEnhPerHour').textContent = topEnhPerHour.toFixed(3);
+      
+      document.getElementById('yourRebook').textContent = `${userData.rebook}%`;
+      document.getElementById('avgRebook').textContent = `${Math.round(avgRebook)}%`;
+      document.getElementById('topRebook').textContent = `${topRebook}%`;
+    }
+
+    function generatePerformanceTips(data, actualConv, convGoal) {
+      const tips = [];
+      
+      if (actualConv < convGoal) {
+        tips.push(`Focus on conversion: Your target is ${convGoal}%, currently at ${actualConv.toFixed(1)}%`);
+        tips.push('Identify eligible guests early and tailor your approach');
+      }
+      
+      if (data.rebook < 20) {
+        tips.push('Build stronger connections - ask about future visit plans');
+        tips.push('Follow up with guests after their experience');
+      }
+      
+      if (data.enhance / data.hours < 0.2) {
+        tips.push('Aim for at least one enhancement every 5 hours worked');
+        tips.push('Identify enhancement opportunities during initial consultations');
+      }
+      
+      if (data.hours < 60) {
+        tips.push('Consider picking up additional shifts to increase opportunities');
+      }
+      
+      if (tips.length === 0) {
+        tips.push('You\'re performing well! Keep maintaining your high standards');
+        tips.push('Consider mentoring newer team members');
+      }
+      
+      document.getElementById('performanceTips').innerHTML = tips.map(tip => `<li>${tip}</li>`).join('');
+    }
+
+    function changeStaffPeriod() {
+      const selector = document.getElementById('staffPeriodSelector');
+      const selectedPeriod = selector.value;
+      currentPeriod = selectedPeriod;
+      
+      const periodText = selector.options[selector.selectedIndex].text;
+      document.getElementById('staffPeriodDisplay').textContent = periodText;
+      document.getElementById('bonusPeriodDisplay').textContent = periodText;
+      
+      if (periodData[selectedPeriod] && periodData[selectedPeriod][currentUser]) {
+        staffData[currentUser] = { ...periodData[selectedPeriod][currentUser] };
+        showStaffDashboard();
+        showNotification(`Viewing: ${periodText}`, 'success');
+      } else {
+        showNotification('No data available for this period', 'error');
+      }
+    }
+
+    function changePeriod() {
+      const selector = document.getElementById('periodSelector');
+      const selectedPeriod = selector.value;
+      currentPeriod = selectedPeriod;
+      
+      if (periodData[selectedPeriod]) {
+        Object.keys(periodData[selectedPeriod]).forEach(name => {
+          staffData[name] = { ...periodData[selectedPeriod][name] };
+        });
+        
+        showAdminDashboard();
+        
+        const periodText = selector.options[selector.selectedIndex].text;
+        showNotification(`Viewing: ${periodText}`, 'success');
+      } else {
+        showNotification('No data available for this period', 'error');
+      }
+    }
+
+    // Staff management functions
+    window.staffRegistry = window.staffRegistry || {};
+
+    function openSimpleStaffManager() {
+      document.getElementById('simpleStaffManager').style.display = 'block';
+      populateRemoveDropdown();
+    }
+
+    function closeSimpleStaffManager() {
+      document.getElementById('simpleStaffManager').style.display = 'none';
+    }
+
+    function populateRemoveDropdown() {
+      const select = document.getElementById('quickRemoveSelect');
+      if (!select) return;
+      
+      select.innerHTML = '<option value="">Select staff to remove...</option>';
+      
+      Object.keys(staffData).forEach(name => {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+      });
+    }
+
+    function addStaffMember() {
+      const name = document.getElementById('quickStaffName').value.trim();
+      const normalizedName = normalizeName(name);
+      const email = document.getElementById('quickStaffEmail').value.trim();
+      const tenure = parseInt(document.getElementById('quickStaffTenure').value) || 0;
+      
+      if (!name) {
+        showNotification('Please enter a name', 'error');
+        return;
+      }
+      
+      if (!email || !email.includes('@')) {
+        showNotification('Please enter a valid email', 'error');
+        return;
+      }
+      
+      if (staffData[normalizedName]) {
+        showNotification('Staff member already exists', 'error');
+        return;
+      }
+      
+      staffData[normalizedName] = {
+        enhance: 0,
+        enhanceGoal: tenure >= 3 ? 10 : 5,
+        member: 0,
+        memberGoal: tenure >= 3 ? 3 : 2,
+        rebook: 0,
+        hours: 0,
+        eligibleGuests: 0,
+        totalGuests: 0,
+        prevPerformance: 0,
+        tenureMonths: tenure,
+        bonus: 0
+      };
+      
+      if (!window.dynamicStaffEmails) {
+        window.dynamicStaffEmails = {};
+      }
+      window.dynamicStaffEmails[normalizedName] = email;
+      
+      if (typeof database !== 'undefined' && currentUser === 'admin') {
+        const staffRef = database.ref(`dashboard/staffRegistry/${normalizedName}`);
+        staffRef.set({
+          email: email,
+          tenureMonths: tenure,
+          addedDate: new Date().toISOString(),
+          addedBy: currentUser,
+          active: true
+        }).then(() => {
+          console.log('Staff added to Firebase registry');
+        }).catch(error => {
+          console.error('Error saving to Firebase:', error);
+        });
+      }
+
+      const loginSelect = document.getElementById('staffSelect');
+      if (loginSelect) {
+        let exists = false;
+        for (let option of loginSelect.options) {
+          if (option.value === normalizedName) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          const newOption = document.createElement('option');
+          newOption.value = normalizedName;
+          newOption.textContent = name;
+          loginSelect.appendChild(newOption);
+        }
+      }
+      
+      document.getElementById('quickStaffName').value = '';
+      document.getElementById('quickStaffEmail').value = '';
+      document.getElementById('quickStaffTenure').value = '0';
+      
+      populateRemoveDropdown();
+      showNotification(`${name} added successfully`, 'success');
+
+      if (currentUser === 'admin') {
+        showAdminDashboard();
+      }
+    }
+
+    function removeStaffMember() {
+      const select = document.getElementById('quickRemoveSelect');
+      const name = select.value;
+      const normalizedName = normalizeName(name);
+
+      if (!normalizedName) {
+        showNotification('Please select a staff member to remove', 'error');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to remove ${name}?`)) {
+        return;
+      }
+
+      if (staffData.hasOwnProperty(normalizedName)) {
+        delete staffData[normalizedName];
+      } else {
+        showNotification('Staff member not found.', 'error');
+        return;
+      }
+
+      for (let i = 0; i < select.options.length; i++) {
+        if (normalizeName(select.options[i].value) === normalizedName) {
+          select.remove(i);
+          break;
+        }
+      }
+
+      if (typeof database !== 'undefined' && currentUser === 'admin') {
+        const staffRef = database.ref(`dashboard/staffRegistry/${normalizedName}`);
+        staffRef.update({
+          active: false,
+          deactivatedDate: new Date().toISOString(),
+          deactivatedBy: currentUser
+        }).then(() => {
+          console.log('Staff marked as inactive in Firebase');
+          showNotification('Staff member removed successfully.', 'success');
+        }).catch(error => {
+          console.error('Error updating Firebase:', error);
+        });
+      } else {
+        showNotification('Staff member removed successfully.', 'success');
+      }
+
+      if (window.dynamicStaffEmails) {
+        delete window.dynamicStaffEmails[normalizedName];
+      }
+
+      const loginSelect = document.getElementById('staffSelect');
+      if (loginSelect) {
+        for (let i = 0; i < loginSelect.options.length; i++) {
+          if (loginSelect.options[i].value === normalizedName) {
+            loginSelect.remove(i);
+            break;
+          }
+        }
+      }
+
+      document.getElementById('quickRemoveSelect').value = '';
+      populateRemoveDropdown();
+
+      if (currentUser === 'admin') {
+        showAdminDashboard();
+      }
+    }
+
+    function loadStaffRegistry() {
+      if (typeof database === 'undefined') return;
+      
+      database.ref('dashboard/staffRegistry').once('value')
+        .then(snapshot => {
+          const registry = snapshot.val();
+          if (registry) {
+            window.staffRegistry = registry;
+            
+            Object.entries(registry).forEach(([name, data]) => {
+              if (data.active !== false && !staffData[name]) {
+                staffData[name] = {
+                  enhance: 0,
+                  enhanceGoal: 5,
+                  member: 0,
+                  memberGoal: 2,
+                  rebook: 0,
+                  hours: 0,
+                  eligibleGuests: 0,
+                  totalGuests: 0,
+                  prevPerformance: 0,
+                  tenureMonths: data.tenureMonths || 0,
+                  bonus: 0
+                };
+                
+                if (data.email) {
+                  if (!window.dynamicStaffEmails) {
+                    window.dynamicStaffEmails = {};
+                  }
+                  window.dynamicStaffEmails[name] = data.email;
+                }
+              }
+            });
+            
+            console.log('Staff registry loaded from Firebase');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading staff registry:', error);
+        });
+    }
+
+    // CSV Upload handlers (continued in next update)
+    function handleAppointmentUpload(event) {
+      const file = event.target.files[0];
+      if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+          parsedData = parseCSV(fileContent);
+          if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+            showNotification('File is empty or could not be parsed.', 'error');
+            return;
+          }
+        } catch (err) {
+          showNotification('Error parsing file: ' + (err.message || err), 'error');
+          return;
+        }
+
+        uploadedData.appointments = fileContent;
+        uploadTimestamps.appointments = new Date().toISOString();
+        saveDataToFirebase('appointments', fileContent);
+        updateUploadTimestamps();
+        showNotification('Appointment data loaded', 'success');
+      };
+
+      reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+      };
+
+      reader.readAsText(file);
+    }
+
+    function handleMembershipUpload(event) {
+      const file = event.target.files[0];
+      if (!file) {
+        showNotification('No file selected.', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const fileContent = e.target.result;
+        let parsedData;
+        try {
+          parsedData = parseCSV(fileContent);
+          if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+            showNotification('File is empty or could not be parsed.', 'error');
+            return;
+          }
+        } catch (err) {
+          showNotification('Error parsing file: ' + (err.message || err), 'error');
+          return;
+        }
+
+        uploadedData.memberships = fileContent;
+        uploadTimestamps.memberships = new Date().toISOString();
+        saveDataToFirebase('memberships', fileContent);
+        updateUploadTimestamps();
+        showNotification('Membership data loaded', 'success');
+      };
+
+      reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+      };
+
+      reader.readAsText(file);
+    }
+
+    function handleSalesUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedData.sales = e.target.result;
+        uploadTimestamps.sales = new Date().toISOString();
+        saveDataToFirebase('sales', e.target.result);
+        updateUploadTimestamps();
+        showNotification('Sales data loaded', 'success');
+      };
+      reader.readAsText(file);
+    }
+
+    function handleOOTUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedData.oot = e.target.result;
+        uploadTimestamps.oot = new Date().toISOString();
+        saveDataToFirebase('oot', e.target.result);
+        updateUploadTimestamps();
+        showNotification('OOT data loaded', 'success');
+      };
+      reader.readAsText(file);
+    }
+
+    function handlePayrollUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedData.payroll = e.target.result;
+        uploadTimestamps.payroll = new Date().toISOString();
+        saveDataToFirebase('payroll', e.target.result);
+        updateUploadTimestamps();
+        payrollData = parseCSV(e.target.result);
+        extractPayPeriods();
+        showNotification('Payroll hours data loaded', 'success');
+      };
+      reader.readAsText(file);
+    }
+
+    function handleBonusUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedData.bonusStructure = e.target.result;
+        localStorage.setItem('bonusStructure', e.target.result);
+        
+        try {
+          const bonusData = parseCSV(e.target.result);
+          updateBonusRates(bonusData);
+          
+          const btn = document.getElementById('bonusUploadBtn');
+          if (btn) {
+            btn.style.background = '#e8f5e9';
+            btn.style.borderColor = '#4caf50';
+            btn.innerHTML = 
+              '<span style="font-size: 16px;">💵</span>' +
+              '<span>Bonus Structure ✓</span>' +
+              '<span style="margin-left: auto; color: #4caf50; font-size: 12px;">LOADED</span>';
+          }
+          showNotification('Bonus structure loaded and saved', 'success');
+        } catch (error) {
+          showNotification('Error loading bonus structure: ' + error.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function handleStaffListUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const csvData = e.target.result;
+        const parsed = parseCSV(csvData);
+        
+        uploadedData.staffList = csvData;
+        uploadTimestamps.staffList = new Date().toISOString();
+        
+        if (currentUser === 'admin') {
+          saveDataToFirebase('staffList', csvData);
+        }
+        
+        updateUploadTimestamps();
+        updateStaffDropdown(parsed);
+        localStorage.setItem('staffList', JSON.stringify(parsed));
+        
+        showNotification('Staff list updated successfully', 'success');
+      };
+      reader.readAsText(file);
+    }
+
+    function updateStaffDropdown(staffList) {
+      const dropdown = document.getElementById('staffSelect');
+      if (!dropdown) return;
+      
+      dropdown.innerHTML = '<option value="">Select your name...</option>';
+      
+      window.dynamicStaffEmails = {};
+      
+      if (!staffList || staffList.length === 0) {
+        window.APPROVED_STAFF.forEach(name => {
+          const normalized = normalizeName(name);
+          dropdown.innerHTML += `<option value="${normalized}">${normalized}</option>`;
+        });
+        console.log(`Staff dropdown populated with ${window.APPROVED_STAFF.length} default staff members`);
+        return;
+      }
+
+      let addedCount = 0;
+      staffList.forEach(staff => {
+        if (
+          window.APPROVED_STAFF.map(normalizeName).includes(normalizeName(staff.Name)) &&
+          (!staff.Status || staff.Status === 'Active')
+        ) {
+          const normalized = normalizeName(staff.Name);
+          dropdown.innerHTML += `<option value="${normalized}">${normalized}</option>`;
+          addedCount++;
+        }
+      });
+      
+      console.log(`Staff dropdown updated with ${addedCount} approved staff members`);
+    }
+
+    function populateLoginDropdown() {
+      const select = document.getElementById('staffSelect');
+      if (!select) return;
+      
+      select.innerHTML = '<option value="">Select your name...</option>';
+      
+      Object.keys(staffData).sort().forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = staffData[name].originalName || name;
+        select.appendChild(option);
+      });
+      
+      console.log('Login dropdown populated with', Object.keys(staffData).length, 'staff members');
+    }
+
+    function updateBonusRates(bonusData) {
+      BONUS_RATES = {
+        enhancement: {},
+        membership: {},
+        performanceBonus: 0
+      };
+      
+      bonusData.forEach(row => {
+        const bonusType = (row['Bonus Type'] || '').toLowerCase().trim();
+        const tier = parseInt(row['Tier'] || 0);
+        const rate = parseFloat(row['Rate'] || 0);
+        
+        if (bonusType === 'enhancement' && tier) {
+          BONUS_RATES.enhancement[`tier${tier}`] = rate;
+        } else if (bonusType === 'membership' && tier) {
+          BONUS_RATES.membership[`tier${tier}`] = rate;
+        } else if (bonusType === 'performance') {
+          BONUS_RATES.performanceBonus = rate;
+        }
+      });
+      
+      console.log('Updated bonus rates:', BONUS_RATES);
+      
+      if (staffData && Object.keys(staffData).length > 0) {
+        recalculateAllBonuses();
+      }
+    }
+
+    function recalculateAllBonuses() {
+      if (typeof staffData !== 'undefined' && staffData) {
+        Object.keys(staffData).forEach(name => {
+          if (typeof calculateBonus === 'function') {
+            const bonusCalc = calculateBonus(staffData[name]);
+            staffData[name].bonus = bonusCalc.total;
+          }
+        });
+      }
+      
+      if (typeof periodData !== 'undefined' && periodData) {
+        Object.keys(periodData).forEach(period => {
+          if (periodData[period]) {
+            Object.keys(periodData[period]).forEach(name => {
+              if (typeof calculateBonus === 'function') {
+                const bonusCalc = calculateBonus(periodData[period][name]);
+                periodData[period][name].bonus = bonusCalc.total;
+              }
+            });
+          }
+        });
+      }
+      
+      if (typeof currentUser !== 'undefined') {
+        if (currentUser === 'admin') {
+          if (typeof showAdminDashboard === 'function') {
+            showAdminDashboard();
+          }
+        } else if (currentUser && currentUser !== 'admin') {
+          if (typeof showStaffDashboard === 'function') {
+            showStaffDashboard();
+          }
+        }
+      }
+      
+      showNotification('All bonuses recalculated with new rates', 'info');
+    }
+
+    function extractPayPeriods() {
+      const uniquePeriods = new Set();
+      payPeriods = [];
+      
+      if (!payrollData) return;
+      
+      payrollData.forEach(row => {
+        const key = `${row['Period Start']}_${row['Period End']}`;
+        if (!uniquePeriods.has(key) && row['Period Start'] && row['Period End']) {
+          uniquePeriods.add(key);
+          payPeriods.push({
+            start: new Date(row['Period Start']),
+            end: new Date(row['Period End']),
+            label: `${row['Period Start']} - ${row['Period End']}`,
+            startStr: row['Period Start'],
+            endStr: row['Period End']
+          });
+        }
+      });
+      
+      payPeriods.sort((a, b) => b.start - a.start);
+    }
+
+// Replace your extractStaffFromData function with this safer version:
+function extractStaffFromData() {
+  const staffSet = new Set();
+
+  if (uploadedData.sales && typeof uploadedData.sales === 'string') {
+    try {
+      const salesData = parseCSV(uploadedData.sales);
+      salesData.forEach(row => {
+        if (row && row['ClosedBy']) {
+          const fixedName = normalizeName(row['ClosedBy']);
+          if (fixedName) staffSet.add(fixedName);
+        }
+      });
+    } catch (error) {
+      console.error('Error processing sales data:', error);
+    }
+  }
+
+  if (uploadedData.payroll && typeof uploadedData.payroll === 'string') {
+    try {
+      const payrollData = parseCSV(uploadedData.payroll);
+      payrollData.forEach(row => {
+        if (row && row['Name']) {
+          const fixedName = normalizeName(row['Name']);
+          if (fixedName) staffSet.add(fixedName);
+        }
+      });
+    } catch (error) {
+      console.error('Error processing payroll data:', error);
+    }
+  }
+
+  if (uploadedData.memberships && typeof uploadedData.memberships === 'string') {
+    try {
+      const memberData = parseCSV(uploadedData.memberships);
+      memberData.forEach(row => {
+        if (row && row['Sold By']) {
+          const fixedName = normalizeName(row['Sold By']);
+          if (fixedName) staffSet.add(fixedName);
+        }
+      });
+    } catch (error) {
+      console.error('Error processing membership data:', error);
+    }
+  }
+
+  const staffList = Array.from(staffSet).filter(name => name && name.trim());
+
+  staffList.forEach(staffName => {
+    if (
+      window.APPROVED_STAFF.map(normalizeName).includes(normalizeName(staffName)) &&
+      !staffData[staffName]
+    ) {
+      staffData[staffName] = {
+        enhance: 0,
+        enhanceGoal: 10,
+        member: 0,
+        memberGoal: 3,
+        rebook: 0,
+        hours: 0,
+        eligibleGuests: 0,
+        totalGuests: 0,
+        prevPerformance: 0,
+        tenureMonths: 6,
+        bonus: 0
+      };
+    }
+  });
+
+  console.log('Dynamically found staff:', staffList.length, 'members');
+  return staffList;
+}
+    
+    function validateCSVColumns(data, requiredColumns, dataType) {
+      if (!data || data.length === 0) {
+        showNotification(`No ${dataType} data found`, 'error');
+        return false;
+      }
+      
+      const actualColumns = Object.keys(data[0]);
+      const missing = requiredColumns.filter(col => !actualColumns.includes(col));
+      
+      if (missing.length > 0) {
+        showNotification(`Missing columns in ${dataType}: ${missing.join(', ')}`, 'error');
+        console.error(`${dataType} has columns:`, actualColumns);
+        console.error(`Missing required:`, missing);
+        return false;
+      }
+      
+      return true;
+    }
+
+    function processAllData() {
+      if (!uploadedData.appointments && !uploadedData.memberships && !uploadedData.sales && !uploadedData.oot) {
+        showNotification('Please upload at least one data file first', 'error');
+        return;
+      }
+      
+      const dynamicStaff = extractStaffFromData();
+      populateLoginDropdown();
+      
+      Object.keys(periodData).forEach(period => {
+        periodData[period] = {};
+      });
+      
+      parsedAppointments = uploadedData.appointments ? parseCSV(uploadedData.appointments) : null;
+      parsedMemberships = uploadedData.memberships ? parseCSV(uploadedData.memberships) : null;
+      parsedSales = uploadedData.sales ? parseCSV(uploadedData.sales) : null;
+      parsedOOT = uploadedData.oot ? parseCSV(uploadedData.oot) : null;
+      
+      const validations = [
+        {
+          data: parsedSales,
+          columns: ['Sale Date', 'ClosedBy', 'Invoice No', 'Category', 'Member'],
+          type: 'Sales'
+        },
+        {
+          data: parsedMemberships,
+          columns: ['Sale Date', 'Sold By'],
+          type: 'Memberships'
+        },
+        {
+          data: parsedOOT,
+          columns: ['Sales Date', 'Invoice No'],
+          type: 'OOT'
+        }
+      ];
+      
+      validations.forEach(validation => {
+        if (validation.data && !validateCSVColumns(validation.data, validation.columns, validation.type)) {
+          console.error(`Validation failed for ${validation.type}`);
+        }
+      });
+
+
+const periodRanges = {
+  jan1: { start: new Date('2025-01-01'), end: new Date('2025-01-11') },
+  jan12: { start: new Date('2025-01-12'), end: new Date('2025-01-25') },
+  jan26: { start: new Date('2025-01-26'), end: new Date('2025-02-08') },
+  feb9: { start: new Date('2025-02-09'), end: new Date('2025-02-22') },
+  feb23: { start: new Date('2025-02-23'), end: new Date('2025-03-08') },
+  mar9: { start: new Date('2025-03-09'), end: new Date('2025-03-22') },
+  mar23: { start: new Date('2025-03-23'), end: new Date('2025-04-05') },
+  apr6: { start: new Date('2025-04-06'), end: new Date('2025-04-19') },
+  apr20: { start: new Date('2025-04-20'), end: new Date('2025-05-03') },
+  may4: { start: new Date('2025-05-04'), end: new Date('2025-05-17') },
+  may18: { start: new Date('2025-05-18'), end: new Date('2025-05-31') },
+  jun1: { start: new Date('2025-06-01'), end: new Date('2025-06-14') },
+  jun15: { start: new Date('2025-06-15'), end: new Date('2025-06-28') },
+  jun29: { start: new Date('2025-06-29'), end: new Date('2025-07-12') },
+  jul13: { start: new Date('2025-07-13'), end: new Date('2025-07-26') },
+  jul27: { start: new Date('2025-07-27'), end: new Date('2025-08-09') },
+  aug10: { start: new Date('2025-08-10'), end: new Date('2025-08-23') },
+  aug24: { start: new Date('2025-08-24'), end: new Date('2025-09-06') },
+  sep7: { start: new Date('2025-09-07'), end: new Date('2025-09-20') },
+  current: { start: new Date('2025-09-21'), end: new Date('2025-10-04') },
+  oct5: { start: new Date('2025-10-05'), end: new Date('2025-10-18') },
+  oct19: { start: new Date('2025-10-19'), end: new Date('2025-11-01') },
+  nov2: { start: new Date('2025-11-02'), end: new Date('2025-11-15') },
+  nov16: { start: new Date('2025-11-16'), end: new Date('2025-11-29') },
+  nov30: { start: new Date('2025-11-30'), end: new Date('2025-12-13') },
+  dec14: { start: new Date('2025-12-14'), end: new Date('2025-12-27') },
+  dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10') }
+};
+      Object.keys(periodRanges).forEach(periodKey => {
+        const period = periodRanges[periodKey];
+        const periodStaffData = {};
+        
+        const periodSales = parsedSales ? 
+          parsedSales.filter(row => {
+            const rowDate = parseDateConsistent(row['Sale Date']);
+            return rowDate >= period.start && rowDate <= period.end;
+          }) : [];
+          
+          if (periodKey === 'sep7') {
+  console.log('Sales rows for sep7:', periodSales.map(row => row['Sale Date']));
+}
+
+        const periodOOT = parsedOOT ? 
+          parsedOOT.filter(row => {
+            const rowDate = parseDateConsistent(row['Sales Date']);
+            return rowDate >= period.start && rowDate <= period.end;
+          }) : [];
+
+        const periodMemberships = parsedMemberships ? 
+          parsedMemberships.filter(row => {
+            const rowDate = parseDateConsistent(row['Sale Date']);
+            if (!rowDate) return false;
+            return rowDate >= period.start && rowDate <= period.end;
+          }) : [];
+        
+        const periodPayroll = payrollData ?
+          payrollData.filter(row => {
+            if (!Object.keys(staffData).includes(normalizeName(row['Name']))) {
+              return false;
+            }
+            
+            const rowStart = parseDateConsistent(row['Period Start']);
+            const rowEnd = parseDateConsistent(row['Period End']);
+            
+            if (!rowStart || !rowEnd) return false;
+            
+            return rowStart >= period.start && rowStart <= period.end;
+          }) : [];
+        
+        const ootInvoices = new Set(periodOOT.map(row => row['Invoice No']));
+        
+        Object.keys(staffData).forEach(staffName => {
+          const staffHours = periodPayroll
+            .filter(row => row['Name'] && normalizeName(row['Name']) === normalizeName(staffName))
+            .reduce((sum, row) => {
+              const hours = row['Hourly Hours'];
+              if (hours === '' || hours === null || hours === undefined) {
+                return sum;
+              }
+              return sum + parseFloat(hours);
+            }, 0);
+          
+          const membershipsSold = periodMemberships
+            .filter(row => row['Sold By'] && normalizeName(row['Sold By']) === normalizeName(staffName))
+            .length;
+          
+          const staffSales = periodSales.filter(row => 
+            row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizeName(staffName)
+          );
+
+          const uniqueGuestMap = new Map();
+
+          staffSales.forEach(row => {
+            const invoiceNo = row['Invoice No'];
+            if (!invoiceNo) return;
+            
+            const isExistingMember = row['Member'] === 'Yes' || row['Member'] === 'TRUE';
+            const isOOT = ootInvoices.has(invoiceNo);
+            
+            if (!uniqueGuestMap.has(invoiceNo)) {
+              uniqueGuestMap.set(invoiceNo, {
+                isEligible: !isExistingMember && !isOOT
+              });
+            }
+          });
+
+          const eligibleGuests = Array.from(uniqueGuestMap.values())
+            .filter(guest => guest.isEligible).length;
+
+          const enhancementRows = staffSales.filter(row => {
+            const category = (row['Category'] || '').trim().toLowerCase();
+            return category.startsWith('enhancement');
+          });
+
+          const enhancements = enhancementRows.length;
+
+          const normalizedName = normalizeName(staffName);
+          const originalData = periodData[periodKey] && periodData[periodKey][normalizedName] ? 
+            periodData[periodKey][normalizedName] : staffData[normalizedName];
+
+          periodStaffData[normalizedName] = {
+            enhance: enhancements,
+            enhanceGoal: calculateFairEnhancementGoal(
+              staffHours > 0 ? staffHours : originalData.hours,
+              originalData.tenureMonths || 6
+            ),
+            member: membershipsSold,
+            memberGoal: originalData.memberGoal || 2,
+            rebook: originalData.rebook || 0,
+            hours: staffHours > 0 ? Math.round(staffHours) : originalData.hours,
+            eligibleGuests: eligibleGuests,
+            totalGuests: staffSales.length,
+            prevPerformance: originalData.prevPerformance || 0,
+            tenureMonths: originalData.tenureMonths || 6
+          };
+          
+          const bonusCalc = calculateBonus(periodStaffData[normalizedName]);
+          periodStaffData[normalizedName].bonus = bonusCalc.total;
+        });
+        
+        periodData[periodKey] = periodStaffData;
+      });
+      
+      if (periodData.current && Object.keys(periodData.current).length > 0) {
+        staffData = { ...periodData.current };
+        console.log('Updated staffData with current period data');
+      }
+      
+      showAdminDashboard();
+      showNotification('All periods processed from CSV data!', 'success');
+    }
+
+    // Quick Actions Functions
+    function exportToCSV() {
+      const rows = [['Name', 'Hours', 'Enhancements', 'Memberships', 'Conversion%', 'Rebook%', 'Bonus']];
+      Object.entries(staffData).forEach(([name, data]) => {
+        const conv = data.eligibleGuests > 0 ? (data.member / data.eligibleGuests * 100).toFixed(1) : '0';
+        const bonusCalc = calculateBonus(data);
+        rows.push([name, data.hours, data.enhance, data.member, conv, data.rebook, bonusCalc.total.toFixed(2)]);
+      });
+      
+      const csvContent = rows.map(e => e.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `performance_${currentPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      showNotification('Data exported successfully', 'success');
+    }
+
+    function printDashboard() {
+      const quickActions = document.querySelector('.quick-actions');
+      if (quickActions) quickActions.style.display = 'none';
+      window.print();
+      if (quickActions) quickActions.style.display = 'block';
+    }
+
+    function refreshData() {
+      if (currentUser === 'admin') {
+        showAdminDashboard();
+      } else if (currentUser) {
+        showStaffDashboard();
+      }
+      showNotification('Dashboard refreshed', 'success');
+    }
+
+    function toggleQuickActions() {
+      const panel = document.querySelector('.quick-actions');
+      if (panel.classList.contains('minimized')) {
+        panel.classList.remove('minimized');
+      } else {
+        panel.classList.add('minimized');
+      }
+    }
+
+    // Firebase functions
+    function saveDataToFirebase(dataType, csvContent) {
+      if (currentUser !== 'admin') {
+        console.log('Only admin can save data');
+        return;
+      }
+      
+      const dataRef = database.ref(`dashboard/csvData/${dataType}`);
+      dataRef.set({
+        content: csvContent,
+        timestamp: new Date().toISOString(),
+        updatedBy: currentUser
+      }).then(() => {
+        console.log(`${dataType} saved to Firebase`);
+      }).catch((error) => {
+        console.error('Error saving to Firebase:', error);
+      });
+    }
+
+ // ...existing code...
+function loadAllDataFromFirebase() {
+  showNotification('Loading data from cloud...', 'info');
+  
+  const dataTypes = ['appointments', 'memberships', 'sales', 'oot', 'payroll', 'bonusStructure', 'staffList'];
+  let loadedCount = 0;
+  
+  dataTypes.forEach(dataType => {
+    database.ref(`dashboard/csvData/${dataType}`).once('value')
+      .then(snapshot => {
+        const data = snapshot.val();
+        if (data && data.content) {
+          uploadedData[dataType] = data.content;
+          uploadTimestamps[dataType] = data.timestamp;
+          
+          if (dataType === 'bonusStructure') {
+            try {
+              const bonusData = parseCSV(data.content);
+              updateBonusRates(bonusData);
+              
+              const btn = document.getElementById('bonusUploadBtn');
+              if (btn) {
+                btn.style.background = '#e8f5e9';
+                btn.style.borderColor = '#4caf50';
+                btn.innerHTML = 
+                  '<span style="font-size: 16px;">💵</span>' +
+                  '<span>Bonus Structure ✓</span>' +
+                  '<span style="margin-left: auto; color: #4caf50; font-size: 12px;">LOADED</span>';
+              }
+            } catch (error) {
+              console.error('Error processing bonus data:', error);
+            }
+          }
+          
+          if (dataType === 'payroll') {
+            payrollData = parseCSV(data.content);
+            extractPayPeriods();
+          }
+        }
+        
+        loadedCount++;
+        if (loadedCount === dataTypes.length) {
+          updateUploadTimestamps();
+          populateLoginDropdown();
+          showNotification('All data loaded from cloud', 'success');
+          
+          if (uploadedData.sales || uploadedData.appointments) {
+            setTimeout(() => {
+              processAllData();
+            }, 500);
+          }
+        }
+      })
+      .catch(error => {
+        console.error(`Error loading ${dataType}:`, error);
+        loadedCount++;
+      });
+  });
+}
+
+    // Data Validator
+    window.DataValidator = {
+      showValidationPreview: function() {
+        console.log('Validation preview triggered');
+        processAllData();
+      }
+    };
+
+    // Authentication state listener
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log('User is signed in:', user.email);
+      } else {
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('staffView').classList.add('hidden');
+        document.getElementById('adminView').classList.add('hidden');
+      }
+    });
+
+    // DOMContentLoaded event listener
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Enhanced Performance Dashboard initialized');
+      
+      initializeDefaultStaff();
+      createStaffDropdown();
+      createAdminDropdown();
+      
+      const savedStaffList = localStorage.getItem('staffList');
+      if (savedStaffList) {
+        updateStaffDropdown(JSON.parse(savedStaffList));
+        console.log('Staff list auto-loaded from saved settings');
+      }
+      
+      const appointmentInput = document.getElementById('appointmentFile');
+      if (appointmentInput) {
+        console.log('Appointment input found at initialization');
+      } else {
+        console.log('ERROR: Appointment input NOT found at initialization');
+      }
+      
+      const savedBonus = localStorage.getItem('bonusStructure');
+      if (savedBonus) {
+        uploadedData.bonusStructure = savedBonus;
+        try {
+          const bonusData = parseCSV(savedBonus);
+          updateBonusRates(bonusData);
+          
+          const btn = document.getElementById('bonusUploadBtn');
+          if (btn) {
+            btn.style.background = '#e8f5e9';
+            btn.style.borderColor = '#4caf50';
+            btn.innerHTML = 
+              '<span style="font-size: 16px;">💵</span>' +
+              '<span>Bonus Structure ✓</span>' +
+              '<span style="margin-left: auto; color: #4caf50; font-size: 12px;">LOADED</span>';
+          }
+          
+          console.log('Bonus structure auto-loaded from saved settings');
+        } catch (error) {
+          console.error('Error loading saved bonus structure:', error);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

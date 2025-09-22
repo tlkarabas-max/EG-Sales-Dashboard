@@ -1,4 +1,4 @@
-    console.log('showStaffDashboard called');
+console.log('showStaffDashboard called');
     console.log('showAdminDashboard called');
 <!DOCTYPE html>
 <html lang="en">
@@ -1385,9 +1385,9 @@
                 { name: 'Appointments', key: 'appointments', icon: '📅' },
                 { name: 'Memberships', key: 'memberships', icon: '👥' },
                 { name: 'Sales', key: 'sales', icon: '💰' },
-                { name: 'OOT', key: 'oot', icon: '📍' },
-                { name: 'Payroll', key: 'payroll', icon: '⏰' },
-                { name: 'Bonus', key: 'bonusStructure', icon: '💵' }
+                { name: 'OOT Data', key: 'oot', icon: '📍' },
+                { name: 'Payroll Hours', key: 'payroll', icon: '⏰' },
+                { name: 'Bonus Structure', key: 'bonusStructure', icon: '💵' }
             ];
 
             files.forEach(file => {
@@ -1716,18 +1716,6 @@
                             })
                             .filter(Boolean)
                     );
-                    // Estimate 8 hours per active day
-                    let estimatedHours = uniqueDays.size * 8;
-                    // Calculate unique days worked by staff
-                    const uniqueDays = new Set(
-                        staffSales
-                            .map(row => {
-                                const d = parseDateConsistent(row['Sale Date']);
-                                return d ? d.toDateString() : null;
-                            })
-                            .filter(Boolean)
-                    );
-
                     // Estimate 8 hours per active day
                     let estimatedHours = uniqueDays.size * 8;
             const actualConv = data.eligibleGuests > 0 ?
@@ -2717,7 +2705,6 @@
                 dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10T23:59:59') }
             };
             Object.keys(periodRanges).forEach(periodKey => {
-            // Debug logs removed to fix syntax error
                 const period = periodRanges[periodKey];
                 const periodStaffData = {};
 
@@ -2783,6 +2770,18 @@
                         row['ClosedBy'] && normalizeName(row['ClosedBy']) === normalizedName
                     );
 
+                    // Calculate unique days worked by staff
+                    const uniqueDays = new Set(
+                        staffSales
+                            .map(row => {
+                                const d = parseDateConsistent(row['Sale Date']);
+                                return d ? d.toDateString() : null;
+                            })
+                            .filter(Boolean)
+                    );
+                    // Estimate 8 hours per active day
+                    let estimatedHours = uniqueDays.size * 8;
+
                     // Calculate enhancements
                     const enhancementRows = staffSales.filter(row => {
                         const category = (row['Category'] || '').toLowerCase().trim();
@@ -2791,9 +2790,6 @@
                             category.includes('enhancement');
                     });
                     const enhancements = enhancementRows.length;
-
-                    // Estimate 8 hours per active day
-                    estimatedHours = uniqueDays.size * 8;
 
                     // If still 0, check if there are memberships
                     if (estimatedHours === 0 && membershipsSold > 0) {

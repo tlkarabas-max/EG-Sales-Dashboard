@@ -2706,6 +2706,9 @@
                 const periodSales = parsedSales ?
                     parsedSales.filter(row => {
                         const rowDate = parseDateConsistent(row['Sale Date']);
+                        if (periodKey === 'sep7') {
+                            console.log(`[sep7 sales filter] Sale Date: ${row['Sale Date']}, Parsed:`, rowDate, 'Period:', period.start, period.end);
+                        }
                         return rowDate >= period.start && rowDate <= period.end;
                     }) : [];
 

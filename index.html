@@ -2700,6 +2700,14 @@
                 dec28: { start: new Date('2025-12-28'), end: new Date('2026-01-10T23:59:59') }
             };
             Object.keys(periodRanges).forEach(periodKey => {
+            if (periodKey === 'sep7' && parsedSales && parsedSales.length > 0) {
+                console.log('[sep7 date parse test] First 10 sales:');
+                parsedSales.slice(0, 10).forEach(row => {
+                    const rawDate = row['Sale Date'];
+                    const parsedDate = parseDateConsistent(rawDate);
+                    console.log(`  Raw: ${rawDate}, Parsed:`, parsedDate);
+                });
+            }
                 const period = periodRanges[periodKey];
                 const periodStaffData = {};
 

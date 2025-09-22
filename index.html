@@ -2769,35 +2769,29 @@
                     // Calculate enhancements
                     const enhancementRows = staffSales.filter(row => {
                         const category = (row['Category'] || '').toLowerCase().trim();
-                        // Debug: print category for sep7 period
-                        if (periodKey === 'sep7') {
-                            console.log(`[sep7 enhance debug] Staff: ${normalizedName}, Category:`, row['Category']);
-                        }
                         return category === 'enhancement' || 
-                                     category === 'enhancements' || 
-                                     category.includes('enhancement');
+                            category === 'enhancements' || 
+                            category.includes('enhancement');
                     });
                     const enhancements = enhancementRows.length;
 
+                    // Estimate 8 hours per active day
+                    estimatedHours = uniqueDays.size * 8;
 
-                        // Estimate 8 hours per active day
-                        estimatedHours = uniqueDays.size * 8;
+                    // If still 0, check if there are memberships
+                    if (estimatedHours === 0 && membershipsSold > 0) {
+                        estimatedHours = 40; // Default hours for staff with memberships
+                    }
 
-                        // If still 0, check if there are memberships
-                        if (estimatedHours === 0 && membershipsSold > 0) {
-                            estimatedHours = 40; // Default hours for staff with memberships
-                        }
+                    // If still 0 but has enhancements, give default hours
+                    if (estimatedHours === 0 && enhancements > 0) {
+                        estimatedHours = 40; // Default hours for staff with enhancements
+                    }
 
-                        // If still 0 but has enhancements, give default hours
-                        if (estimatedHours === 0 && enhancements > 0) {
-                            estimatedHours = 40; // Default hours for staff with enhancements
-                        }
-
-                        // Or use previous period average if available
-                        const prevPeriodData = periodData['sep7'] && periodData['sep7'][normalizedName];
-                        if (prevPeriodData && prevPeriodData.hours > 0 && estimatedHours === 0) {
-                            estimatedHours = prevPeriodData.hours; // Use previous period as estimate
-                        }
+                    // Or use previous period average if available
+                    const prevPeriodData = periodData['sep7'] && periodData['sep7'][normalizedName];
+                    if (prevPeriodData && prevPeriodData.hours > 0 && estimatedHours === 0) {
+                        estimatedHours = prevPeriodData.hours; // Use previous period as estimate
                     }
 
                     // Calculate unique guests and eligibility

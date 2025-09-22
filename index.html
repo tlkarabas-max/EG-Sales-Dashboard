@@ -2363,6 +2363,11 @@ const periodOOT = parsedOOT ?
   const rebookRate = totalAppointments > 0 ? 
     Math.round((rebookedYes / totalAppointments) * 100) : 0;
 
+  // Add this debug line here:
+  if (periodKey === 'current') {
+    console.log(`${normalizedName} - Appointments: ${totalAppointments}, Rebooked: ${rebookedYes}, Rate: ${rebookRate}%`);
+  }
+
   // Estimate hours if payroll is missing
   let estimatedHours = staffHours;
   if (staffHours === 0) {

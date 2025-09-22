@@ -2347,17 +2347,25 @@ const enhancementRows = staffSales.filter(row => {
 });
 const enhancements = enhancementRows.length;
 
-// Add the debug code here:
-if (periodKey === 'sep7') {
-  console.log(`${normalizedName} - Period Sep 7-20:`);
-  console.log(`  Total sales: ${staffSales.length}`);
-  console.log(`  Enhancements: ${enhancements}`);
-  if (staffSales.length > 0) {
-    const categories = staffSales.map(r => r['Category']);
-    const enhanceCount = categories.filter(c => c && c.toLowerCase().includes('enhancement')).length;
-    console.log(`  Categories with 'enhancement': ${enhanceCount}`);
-    console.log(`  Unique categories:`, [...new Set(categories)]);
-  }
+// Add this debug code:
+if (periodKey === 'sep7' && normalizedName === 'angela mcnally') {
+  console.log(`Angela McNally - Sep 7-20 Debug:`);
+  console.log(`  Total sales in period: ${staffSales.length}`);
+  console.log(`  Categories found:`, [...new Set(staffSales.map(r => r['Category']))]);
+  console.log(`  Enhancement rows found: ${enhancementRows.length}`);
+  
+  // Check if FirstVisit is being used for enhancements
+  const firstVisitYes = staffSales.filter(row => 
+    row['FirstVisit'] && row['FirstVisit'].toLowerCase() === 'yes'
+  ).length;
+  console.log(`  FirstVisit=Yes count: ${firstVisitYes}`);
+  
+  // Show a few sample sales
+  console.log(`  Sample sales:`, staffSales.slice(0, 3).map(s => ({
+    date: s['Sale Date'],
+    category: s['Category'],
+    firstVisit: s['FirstVisit']
+  })));
 }
   // Calculate rebook rate from appointments
   const staffAppointments = parsedAppointments ? 

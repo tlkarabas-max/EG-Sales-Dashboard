@@ -838,36 +838,24 @@
       bonus: 0
     };
 
-    // Helper functions
-  function normalizeName(name) {
+// Helper functions
+function normalizeName(name) {
   if (!name) return '';
-  name = name.trim().replace(/\s+/g, ' ');
-  
-  // Special handling for "McNally" vs "Mcnally" and similar names
-  const parts = name.split(' ');
-  const normalized = parts.map(part => {
-    // Handle McNames specially
-    if (part.toLowerCase().startsWith('mc') && part.length > 2) {
-      return 'Mc' + part.charAt(2).toUpperCase() + part.slice(3).toLowerCase();
-    }
-    // Regular capitalization
-    return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-  });
-  
-  return normalized.join(' ');
+  // Convert to lowercase and normalize spaces
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `notification ${type}`;
-      notification.textContent = message;
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-      }, 3000);
-    }
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
 
 // Replace your existing parseCSV function around line 865 with this improved version:
 function parseCSV(text) {

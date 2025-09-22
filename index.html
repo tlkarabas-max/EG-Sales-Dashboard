@@ -2779,46 +2779,24 @@
                     if (periodKey === 'sep7') {
                         console.log(`[sep7 debug] Staff: ${normalizedName}`);
                         console.log(`  Total sales in period: ${staffSales.length}`);
-                        console.log(`  Categories found:`, [...new Set(staffSales.map(r => r['Category']))]);
-                        console.log(`  Enhancement rows found: ${enhancementRows.length}`);
-                        // Show a few sample sales
-                        console.log(`  Sample sales:`, staffSales.slice(0, 3).map(s => ({
-                            date: s['Sale Date'],
-                            category: s['Category'],
-                            firstVisit: s['FirstVisit']
-                        })));
-                    }
-                    // Calculate rebook rate from appointments
-                    const staffAppointments = parsedAppointments ?
-                        parsedAppointments.filter(row => {
-                            const rowDate = parseDateConsistent(row['Appointment Date']);
-                            const bookedBy = row['Booked By'] ? normalizeName(row['Booked By']) : '';
-                            return rowDate && rowDate >= period.start && rowDate <= period.end && bookedBy === normalizedName;
-                        }) : [];
-
-                    const totalAppointments = staffAppointments.length;
-                    const rebookedYes = staffAppointments.filter(row =>
-                        row['Rebooked'] && row['Rebooked'].toLowerCase().trim() === 'yes'
-                    ).length;
-
-                    const rebookRate = totalAppointments > 0 ?
-                        Math.round((rebookedYes / totalAppointments) * 100) : 0;
-
-                    // Add this debug line here:
-                    if (periodKey === 'current') {
-                        console.log(`${normalizedName} - Appointments: ${totalAppointments}, Rebooked: ${rebookedYes}, Rate: ${rebookRate}%`);
-                    }
-
-                    // Estimate hours if payroll is missing
-                    let estimatedHours = staffHours;
-                    if (staffHours === 0) {
-                        // Count unique days with activity
-                        const uniqueDays = new Set();
-                        staffSales.forEach(sale => {
-                            const saleDate = parseDateConsistent(sale['Sale Date']);
-                            if (saleDate) {
-                                uniqueDays.add(saleDate.toDateString());
+                    if (!dateStr) return null;
+                    const cleaned = String(dateStr).trim();
+                    // Simple split approach for M/D/YY format
+                    if (cleaned.includes('/')) {
+                        const parts = cleaned.split('/');
+                        if (parts.length === 3) {
+                            const month = parseInt(parts[0], 10);
+                            const day = parseInt(parts[1], 10);
+                            let year = parseInt(parts[2], 10);
+                            if (year < 100) year += 2000;
+                            // Validate the values
+                            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                                return new Date(year, month - 1, day);
                             }
+                        }
+                    }
+                    return null;
+                }
                         });
 
                         // Estimate 8 hours per active day

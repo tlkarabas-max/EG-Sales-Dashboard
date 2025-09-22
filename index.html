@@ -2704,14 +2704,6 @@
                 const periodSales = parsedSales ?
                     parsedSales.filter(row => {
                         const rowDate = parseDateConsistent(row['Sale Date']);
-                        // For sep7, print every sale's parsed date and period range
-                        if (periodKey === 'sep7' && parsedSales) {
-                            console.log('[sep7 debug] Period Start:', period.start, 'Period End:', period.end);
-                            parsedSales.forEach((row, idx) => {
-                                const rowDate = parseDateConsistent(row['Sale Date']);
-                                console.log(`[sep7 debug] Sale #${idx}: Raw Date:`, row['Sale Date'], 'Parsed:', rowDate);
-                            });
-                        }
                         return rowDate >= period.start && rowDate <= period.end;
                     }) : [];
 

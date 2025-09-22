@@ -2706,10 +2706,17 @@
                 const periodSales = parsedSales ?
                     parsedSales.filter(row => {
                         const rowDate = parseDateConsistent(row['Sale Date']);
-                        if (periodKey === 'sep7') {
-                            console.log(`[sep7 sales filter] Sale Date: ${row['Sale Date']}, Parsed:`, rowDate, 'Period:', period.start, period.end);
+                        // Compare only date part (ignore time)
+                        function toYMD(d) {
+                            return d ? `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}` : 'null';
                         }
-                        return rowDate >= period.start && rowDate <= period.end;
+                        const rowYMD = rowDate ? rowDate.setHours(0,0,0,0) : null;
+                        const startYMD = period.start ? period.start.setHours(0,0,0,0) : null;
+                        const endYMD = period.end ? period.end.setHours(0,0,0,0) : null;
+                        if (periodKey === 'sep7' && rowDate) {
+                            console.log(`[sep7 sales filter] Sale Date: ${row['Sale Date']}, Parsed:`, toYMD(rowDate), 'Period:', toYMD(period.start), toYMD(period.end));
+                        }
+                        return rowYMD >= startYMD && rowYMD <= endYMD;
                     }) : [];
 
                 const periodOOT = parsedOOT ?

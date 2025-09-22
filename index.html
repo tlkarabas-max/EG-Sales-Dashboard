@@ -1713,6 +1713,18 @@
             }
 
             const convGoal = getConversionGoal(data.tenureMonths);
+                    // Calculate unique days worked by staff
+                    const uniqueDays = new Set(
+                        staffSales
+                            .map(row => {
+                                const d = parseDateConsistent(row['Sale Date']);
+                                return d ? d.toDateString() : null;
+                            })
+                            .filter(Boolean)
+                    );
+
+                    // Estimate 8 hours per active day
+                    let estimatedHours = uniqueDays.size * 8;
             const actualConv = data.eligibleGuests > 0 ?
                 (data.member / data.eligibleGuests * 100) : 0;
             const adjustedEnhanceGoal = calculateFairEnhancementGoal(data.hours, data.tenureMonths);
